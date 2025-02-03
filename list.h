@@ -50,7 +50,7 @@ typedef struct node
 
 
 
-void init_lists();
+void initialize_lists();
 
 
 
@@ -59,6 +59,7 @@ void create_node(list_type_t, void*);
 
 void remove_session(int);
 
+void remove_all(list_type_t);
 
 
 

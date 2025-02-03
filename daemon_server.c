@@ -1,4 +1,192 @@
+/*
+SIGUSR1 - reload config
+SIGINT - stop server
+*/
+
 #include <stdlib.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <stdio.h>
+#include <sys/un.h>
+#include <string.h>
+#include <time.h>
+#include <sys/select.h>
+#include <fcntl.h>
+
+#include "list.h"
+#include "buffer.h"
+
+#define NOTHING_DO 0
+#define RELOAD_CONFIG 1
+#define STOP_SERVER 2
+
+#define SOCKET_PATH "./socket_file"
+#define CONFIG_PATH "./config/config.txt"
+
+
+
+
+enum 
+{
+    queue_connection = 5,
+};
+
+
+
+volatile sig_atomic_t server_state = NOTHING_DO;
+
+
+
+void signal_handler(int);
+
+
+void initialize_listen_socket(int*);
+
+void set_timeout(struct timespec*);
+
+void prepare_fd_sets(fd_set*, fd_set*, int);
+
+
+
+void load_config();
+
+
+int main()
+{
+    int listen_socket_fd;
+    int max_d;
+    int result;
+    struct timespec timeout;
+    fd_set read_fds, write_fds;
+
+    initialize_lists();
+    load_config();
+    initialize_listen_socket(&listen_socket_fd);
+
+    max_d = listen_socket_fd;
+
+    for (;;)
+    {
+        /*event selection*/
+        set_timeout(&timeout);
+
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+
+        FD_SET(listen_socket_fd, &read_fds);
+
+        /*event selection*/
+        /*event processing*/
+
+
+
+        /*event processing*/
+    }
+
+    exit(EXIT_SUCCESS);
+}
+
+
+
+void signal_handler(int signum)
+{
+
+}
+
+
+
+void initialize_listen_socket(int* listen_socket_fd)
+{
+    int result;
+    struct sockaddr_un addr;
+
+    *listen_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    if (*listen_socket_fd == -1)
+    {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
+
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, SOCKET_PATH);
+
+    result = bind(*listen_socket_fd, (struct sockaddr*)&addr, 
+                   sizeof(struct sockaddr_un));
+
+    if (result == -1)
+    {
+        perror("bind");
+        exit(EXIT_FAILURE);
+    }
+
+    result = listen(*listen_socket_fd, queue_connection);
+
+    if (result == -1)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void set_timeout(struct timespec* timeout)
+{
+    timeout->tv_sec = 5;
+    timeout->tv_nsec = 0;
+}
+
+
+
+void load_config()
+{
+    int config_file_fd;
+    int dialog_file_fd;
+    buffer_t buffer;
+    char* readed_line;
+
+    initialize_buffer(&buffer);
+
+    config_file_fd = open(CONFIG_PATH, O_RDONLY);
+
+    if (config_file_fd == -1)
+    {
+        perror("open config file");
+        exit(EXIT_FAILURE);
+    }
+
+    read_from_fd_to_buffer(config_file_fd, &buffer);
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*#include <stdlib.h>
 #include <sys/socket.h>
 #include <stdio.h>
 #include <sys/un.h>
@@ -97,7 +285,22 @@ void handle_connected_client(int listen_socket)
     close(listen_socket);
 
     unlink(SOCKET_PATH);
-}
+}*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*#include <stdlib.h>
