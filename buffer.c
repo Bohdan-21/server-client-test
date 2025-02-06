@@ -1,32 +1,26 @@
 #include "buffer.h"
 
 static void move_left_n(buffer_t* buffer, int n);
+static char* get_mem();
 
-
-
-static char* get_last_position_for_write(buffer_t*);
-static char* get_last_position_for_read(buffer_t*);
-static int get_length_free_cell(buffer_t*);
-static int get_length_occupied_cell(buffer_t*);
-static void update_length(buffer_t*, int);
-static void update_offset(buffer_t*, int);
-
-static int find_end_line(char*, int);
-static void move_buffer_line_left(buffer_t*, int);
+static int get_length_free_space_in_buffer(buffer_t*);
+static char* get_last_position_in_buffer(buffer_t*);
+static void update_buffer_length(buffer_t*, int);
+static int find_string(buffer_t*, char);
 
 void initialize_buffer(buffer_t* buffer)
 {
-    buffer->buffer = malloc(BUFFER_SIZE);
-
-    if (!buffer->buffer)
-    {
-        perror("initialize_buffer");
-        exit(EXIT_FAILURE);
-    }
+    buffer->buffer = get_mem(BUFFER_SIZE);
 
     buffer->length = 0;
-    buffer->offset = 0;
 }
+
+void free_buffer(buffer_t* buffer)
+{
+    free(buffer->buffer);
+}
+
+
 
 void write_from_buffer_to_fd(int destination, buffer_t* source)
 {
@@ -43,145 +37,128 @@ void write_from_buffer_to_fd(int destination, buffer_t* source)
     move_left_n(source, result_write);
 }
 
-
-
 void read_from_fd_to_buffer(buffer_t* destination, int source)
 {
     int result_read;
-    int free_cell;
-    char* buffer;
+    
+    int free_space = get_length_free_space_in_buffer(destination);
+    char* pointer = get_last_position_in_buffer(destination);
 
-    free_cell = get_length_free_cell(destination);
-    buffer = get_last_position_for_write(destination);
-
-    if (free_cell == 0)
+    if (!free_space)
     {
         perror("need increase buffer size");
         exit(EXIT_FAILURE);
     }
 
-    result_read = read(source, buffer, free_cell);
+    result_read = read(source, pointer, free_space);
 
     if (result_read == -1)
     {
-        perror("read");
+        perror("read_from_fd_to_buffer");
         exit(EXIT_FAILURE);
     }
 
-    update_length(destination, result_read);
-    update_offset(destination, result_read);
+    update_buffer_length(destination, result_read);
 }
 
-char* get_line(buffer_t* buffer)
+/*
++ 1 gives guarantee extract string separator. If we have string:"\n" then end_line = 0, 
+and we can use contruction dest[end_line] = 0, which present correct string
+*/
+char* get_string(buffer_t* buffer, char string_separator)
 {
-    char* dest_string;
-    int end_line_position;
+    int end_string = find_string(buffer, string_separator);
+    char* dest;
 
-    end_line_position = find_end_line(buffer->buffer, buffer->length);
-
-    if (find_end_line == -1)
+    if (end_string == -1)
         return NULL;
 
-    dest_string = malloc(end_line_position);
+    dest = get_mem(end_string + 1);
 
-    if (!dest_string)
+    memmove(dest, buffer->buffer, end_string + 1);
+
+    dest[end_string] = 0;
+
+    move_left_n(buffer, end_string + 1);
+
+    return dest;
+}
+
+void clear_buffer(buffer_t* buffer)
+{
+    buffer->length = 0;
+}
+
+int is_have_info(buffer_t* buffer)
+{
+    return buffer->length;
+}
+
+
+
+
+static void move_left_n(buffer_t* buffer, int offset)
+{
+    int n;
+    char* dest;
+
+    if (offset <= 0)
+        return;    
+
+    n = buffer->length - offset;
+    dest = get_mem(BUFFER_SIZE);
+
+    memmove(dest, buffer->buffer + offset, n);
+
+    free(buffer->buffer);
+
+    buffer->buffer = dest;
+    buffer->length = n;
+}
+
+static char* get_mem(size_t size)
+{
+    char* new_buffer;
+
+    new_buffer = malloc(size);
+
+    if (!new_buffer)
     {
-        perror("maloc in get_line");
-        exit(EXIT_FAILURE);/*return NULL;*/
-    }
-    
-    /*copy without \n*/
-    strncpy(dest_string, buffer->buffer, end_line_position - 1);
-
-    /*end_line_position + 1 give next symbol after \n*/
-    move_buffer_line_left(buffer, end_line_position + 1);
-
-    return dest_string;
-}
-
-
-
-
-static void move_left_n(buffer_t* buffer, int n)
-{
-    int j = n + 1;
-    int n2 = n;
-
-    if (n <= 0)
-        return;
-
-    for (int i = 0; i < buffer->length && n != 0; i++, j++, n--)
-    {
-        if (j >= BUFFER_SIZE)
-        {
-            buffer->buffer[i] = 0;
-            break;
-        }
-        else
-            buffer->buffer[i] = buffer->buffer[j];
+        perror("get_mem");
+        exit(EXIT_FAILURE);
     }
 
-    buffer->length -= n2;
+    return new_buffer;
 }
 
 
-
-static char* get_last_position_for_write(buffer_t* buffer)
-{
-    return buffer->buffer + buffer->offset;
-}
-
-static char* get_last_position_for_read(buffer_t*)
-{
-
-}
-
-
-static int get_length_free_cell(buffer_t* buffer)
+static int get_length_free_space_in_buffer(buffer_t* buffer)
 {
     return BUFFER_SIZE - buffer->length;
 }
 
-static int get_length_occupied_cell(buffer_t* buffer)
+static char* get_last_position_in_buffer(buffer_t* buffer)
 {
-    return buffer->length - buffer->offset;
+    return buffer->buffer + buffer->length;
 }
-
 /*work with positive or negative value*/
-static void update_length(buffer_t* buffer, int length_change)
+static void update_buffer_length(buffer_t* buffer, int length_change)
 {
     buffer->length += length_change;
 }
 
-static void update_offset(buffer_t* buffer, int ofsset_change)
+static int find_string(buffer_t* buffer, char string_separator)
 {
-    buffer->offset += ofsset_change;
-}
-
-
-
-static int find_end_line(char* data, int length)
-{
+    int end_string = -1;
     int i = 0;
-    for (; i < length; i++)
+    for (; i < buffer->length; i++)
     {
-        if (data[i] == END_LINE_SYMBOL)
+        if (buffer->buffer[i] == string_separator)
+        {
+            end_string = i;
             break;
+        }
     }
 
-    if (i == length)
-        return -1;
-
-    return i;
-}
-
-static void move_buffer_line_left(buffer_t* buffer, int right_start_position)
-{
-    for (int i = 0; i < buffer->length; i++, right_start_position++)
-    {
-        if (right_start_position >= buffer->length)
-            buffer->buffer[i] = 0;
-        else
-            buffer->buffer[i] = buffer->buffer[right_start_position];
-    }
+    return end_string;
 }

@@ -3,13 +3,13 @@ SIGUSR1 - reload config
 SIGINT - stop server
 */
 
+#include <time.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/socket.h>
 #include <stdio.h>
 #include <sys/un.h>
 #include <string.h>
-#include <time.h>
 #include <sys/select.h>
 #include <fcntl.h>
 
@@ -20,15 +20,19 @@ SIGINT - stop server
 #define RELOAD_CONFIG 1
 #define STOP_SERVER 2
 
+#define WAITING_TIME_IN_SEC 5
+#define WAITING_TIME_IN_NSEC 0
+
 #define SOCKET_PATH "./socket_file"
 #define CONFIG_PATH "./config/config.txt"
 
+#define STRING_SEPARATOR '\n'
 
 
 
 enum 
 {
-    queue_connection = 5,
+    queue_connection = 5
 };
 
 
@@ -42,13 +46,21 @@ void signal_handler(int);
 
 void initialize_listen_socket(int*);
 
-void set_timeout(struct timespec*);
+void close_listen_socket(int*);
 
-void prepare_fd_sets(fd_set*, fd_set*, int);
+
+void setup_signal_mask(sigset_t* mask, sigset_t* oldmask);
 
 
 
 void load_config();
+
+
+
+void set_timeout(struct timespec*);
+
+void prepare_fd_sets(fd_set*, fd_set*, int);
+
 
 
 int main()
@@ -58,30 +70,22 @@ int main()
     int result;
     struct timespec timeout;
     fd_set read_fds, write_fds;
+    sigset_t mask, oldmask;
 
+    setup_signal_mask(&mask, &oldmask);
     initialize_lists();
     load_config();
     initialize_listen_socket(&listen_socket_fd);
 
     max_d = listen_socket_fd;
+    
+    
 
-    for (;;)
-    {
-        /*event selection*/
-        set_timeout(&timeout);
-
-        FD_ZERO(&read_fds);
-        FD_ZERO(&write_fds);
-
-        FD_SET(listen_socket_fd, &read_fds);
-
-        /*event selection*/
-        /*event processing*/
-
-
-
-        /*event processing*/
-    }
+    /*TODO: stop without memmory leak*/
+    /*-------------------------------*/
+    free_lists();
+    close_listen_socket(&listen_socket_fd);
+    /*-------------------------------*/
 
     exit(EXIT_SUCCESS);
 }
@@ -129,10 +133,21 @@ void initialize_listen_socket(int* listen_socket_fd)
     }
 }
 
-void set_timeout(struct timespec* timeout)
+void close_listen_socket(int* listen_socked_fd)
 {
-    timeout->tv_sec = 5;
-    timeout->tv_nsec = 0;
+    shutdown(*listen_socked_fd, SHUT_RDWR);
+    close(*listen_socked_fd);
+    unlink(SOCKET_PATH);
+}
+
+
+
+void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
+{
+    sigemptyset(mask);
+    sigaddset(mask, SIGINT);
+    sigaddset(mask, SIGUSR1);
+    sigprocmask(SIG_BLOCK, mask, oldmask);
 }
 
 
@@ -142,24 +157,61 @@ void load_config()
     int config_file_fd;
     int dialog_file_fd;
     buffer_t buffer;
-    char* readed_line;
-
-    initialize_buffer(&buffer);
+    char* path_to_file;
 
     config_file_fd = open(CONFIG_PATH, O_RDONLY);
 
     if (config_file_fd == -1)
     {
-        perror("open config file");
+        perror("load_config config_file_fd");
         exit(EXIT_FAILURE);
     }
 
-    read_from_fd_to_buffer(config_file_fd, &buffer);
+    initialize_buffer(&buffer);
 
+    read_from_fd_to_buffer(&buffer, config_file_fd);
 
+    path_to_file = get_string(&buffer, STRING_SEPARATOR);
 
+    if (!path_to_file)
+    {
+        perror("load_config path_to_file");
+        exit(EXIT_FAILURE);
+    }
+
+    dialog_file_fd = open(path_to_file, O_RDONLY);
+
+    free(path_to_file);
+
+    if (dialog_file_fd == -1)
+    {
+        perror("load_config dialog_file_fd");
+        exit(EXIT_FAILURE);
+    }
+
+    clear_buffer(&buffer);
+
+    read_from_fd_to_buffer(&buffer, dialog_file_fd);
+
+    while(is_have_info(&buffer))
+    {
+        char* str = get_string(&buffer, STRING_SEPARATOR);
+
+        printf("%s\n", str);
+
+        free(str);
+    }
+
+    free_buffer(&buffer);
 }
 
+
+
+void set_timeout(struct timespec* timeout)
+{
+    timeout->tv_sec = WAITING_TIME_IN_SEC;
+    timeout->tv_nsec = WAITING_TIME_IN_NSEC;
+}
 
 
 

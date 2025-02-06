@@ -7,7 +7,7 @@ list_t* list_for_dialog = NULL;
 static node_t** get_last(node_t**);
 static void remove_session_node(int, node_t**);
 static void recursive_remove(node_t**);
-static void clear_list(list_t*);
+static void reset_list_pointer(list_t*);
 
 void initialize_lists()
 {
@@ -15,9 +15,24 @@ void initialize_lists()
     list_for_dialog = malloc(sizeof(list_t));
 
     if (list_for_session)
-        clear_list(list_for_session);
+        reset_list_pointer(list_for_session);
     if (list_for_dialog)
-        clear_list(list_for_dialog);
+        reset_list_pointer(list_for_dialog);
+
+    if (!list_for_session || !list_for_dialog)
+        exit(EXIT_FAILURE);
+}
+
+void free_lists()
+{
+    remove_all(session_type);
+    remove_all(dialog_type);
+
+    free(list_for_session);
+    free(list_for_dialog);
+
+    list_for_session = NULL;
+    list_for_dialog = NULL;
 }
 
 
@@ -85,7 +100,7 @@ void remove_all(list_type_t lt)
         if (list_for_session)
         {
             recursive_remove(&(*list_for_session).pointer_in_head);
-            clear_list(list_for_session);
+            reset_list_pointer(list_for_session);
         }
     }
     else
@@ -93,21 +108,23 @@ void remove_all(list_type_t lt)
         if (list_for_dialog)
         {
             recursive_remove(&(*list_for_dialog).pointer_in_head);
-            clear_list(list_for_dialog);
+            reset_list_pointer(list_for_dialog);
         }
     }
 }
 
 static void recursive_remove(node_t** pointer)
 {
-    if (*pointer != NULL)
-        recursive_remove(&(**pointer).next);
+    if (*pointer == NULL)
+        return;
+
+    recursive_remove(&(**pointer).next);
 
     free((**pointer).pointer_on_data);
     free(*pointer);
 }
 
-static void clear_list(list_t* pointer)
+static void reset_list_pointer(list_t* pointer)
 {
     (*pointer).pointer_in_head = NULL;
     (*pointer).pointer_in_current = NULL;

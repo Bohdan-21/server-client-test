@@ -13,16 +13,22 @@ typedef struct
 {
     char* buffer;
     int length;
-
-    int offset;
+    
 } buffer_t;
 
 void initialize_buffer(buffer_t* buffer);
+
+void free_buffer(buffer_t* buffer);
+
 
 void write_from_buffer_to_fd(int destination, buffer_t* source);
 
 void read_from_fd_to_buffer(buffer_t* destination, int source);
 
-char* get_line(buffer_t* buffer);
+char* get_string(buffer_t* buffer, char string_separator);
+
+void clear_buffer(buffer_t* buffer);
+
+int is_have_info(buffer_t* buffer);
 
 #endif

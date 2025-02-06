@@ -8,7 +8,7 @@ typedef enum dialog_state
     town_state,
     exit_state,
 
-    kill_state,
+    kill_state
 } dialog_state_t;
 
 #endif

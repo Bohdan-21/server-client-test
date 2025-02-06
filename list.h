@@ -27,24 +27,24 @@ extern list_t* list_for_dialog;
 typedef enum
 {
     session_type,
-    dialog_type,
+    dialog_type
 } list_type_t;
 
 
-typedef struct list
+struct list
 {
     node_t* pointer_in_head;
     node_t* pointer_in_current;
 
     size_t count;
-} list_t;
+};
 
 
-typedef struct node
+struct node
 {
     void* pointer_on_data;
     node_t* next;
-} node_t;
+};
 
 
 
@@ -52,7 +52,7 @@ typedef struct node
 
 void initialize_lists();
 
-
+void free_lists();
 
 
 void create_node(list_type_t, void*);

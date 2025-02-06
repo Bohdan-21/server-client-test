@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build_debug_buffer_test",
+        "type": "shell",
+        "command": "make",
+        "args": [
+          "buffer_test"
+        ],
+        "group": { "kind": "build", "isDefault": true }
+      },
+      {
+        "label": "build_debug_daemon_server",
+        "type": "shell",
+        "command": "make",
+        "args": [
+          "daemon_server"
+        ],
+        "group": { "kind": "build", "isDefault": true }
+      }
+    ]
+  }
+  

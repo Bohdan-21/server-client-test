@@ -10,7 +10,7 @@ typedef enum
     ready_send_info,
     ready_receive_info,
 
-    ready_change_state,
+    ready_change_state
 } status_state_t;
 
 
