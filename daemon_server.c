@@ -15,6 +15,8 @@ SIGINT - stop server
 
 #include "list.h"
 #include "buffer.h"
+#include "dialog.h"
+#include "dialog_state.h"
 
 #define NOTHING_DO 0
 #define RELOAD_CONFIG 1
@@ -28,6 +30,8 @@ SIGINT - stop server
 
 #define STRING_SEPARATOR '\n'
 
+
+#define GET_PROCESS_ID_WHEN_START
 
 
 enum 
@@ -49,18 +53,42 @@ void initialize_listen_socket(int*);
 void close_listen_socket(int*);
 
 
+void setup_signal(sigset_t* mask, sigset_t* oldmask);
+
 void setup_signal_mask(sigset_t* mask, sigset_t* oldmask);
 
 
 
-void load_config();
+static void load_config();
+
+static void load_config_file(buffer_t* config_data);
+
+static char* get_path_data_file(buffer_t* config_data);
+
+static void load_data_file(buffer_t* config_data, char* path_to_file);
+
+static void initialize_config(buffer_t* config_data);
 
 
 
 void set_timeout(struct timespec*);
 
-void prepare_fd_sets(fd_set*, fd_set*, int);
+void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd);
 
+
+
+void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd);
+
+
+
+
+static int accept_connection(int listen_socket_fd);
+
+static int try_accept_connection(int listen_socket_fd);
+
+static void initialize_new_connection_session(int connection_fd);
+
+static const char* get_message_for_send(dialog_state_t state);
 
 
 int main()
@@ -72,14 +100,54 @@ int main()
     fd_set read_fds, write_fds;
     sigset_t mask, oldmask;
 
-    setup_signal_mask(&mask, &oldmask);
+#ifdef GET_PROCESS_ID_WHEN_START
+    printf("%d\n", getpid());
+#endif
+
+    setup_signal(&mask, &oldmask);
     initialize_lists();
     load_config();
     initialize_listen_socket(&listen_socket_fd);
 
     max_d = listen_socket_fd;
     
-    
+    for (;;)
+    {
+        /*event selection*/
+        set_timeout(&timeout);
+        prepare_fd_sets(&read_fds, &write_fds, listen_socket_fd);
+        
+        /*event selection*/
+
+        result = pselect(max_d, &read_fds, &write_fds, NULL, &timeout, &oldmask);
+
+        /*event processing*/
+
+        if (result == -1)
+        {
+            printf("Receive singal\n");
+            
+            if (server_state == STOP_SERVER)
+                break;
+            else if (server_state == RELOAD_CONFIG)
+                server_state = NOTHING_DO;
+        }
+        else if (result == 0)
+        {
+            printf("Time out\n");
+        }
+        else if (result > 0)
+        {
+            /*printf("Some fd ready");*/
+            if (FD_ISSET(listen_socket_fd, &read_fds))
+                max_d = accept_connection(listen_socket_fd);
+
+            if (result > 1)
+                event_handler(&read_fds, &write_fds, listen_socket_fd);
+        }
+
+        /*event processing*/
+    }
 
     /*TODO: stop without memmory leak*/
     /*-------------------------------*/
@@ -94,7 +162,15 @@ int main()
 
 void signal_handler(int signum)
 {
+    signal(signum, signal_handler);
 
+    if (server_state == NOTHING_DO)
+    {
+        if (signum == SIGINT)
+            server_state = STOP_SERVER;
+        else if (signum == SIGUSR1)
+            server_state = RELOAD_CONFIG;
+    }
 }
 
 
@@ -142,6 +218,14 @@ void close_listen_socket(int* listen_socked_fd)
 
 
 
+void setup_signal(sigset_t* mask, sigset_t* oldmask)
+{
+    signal(SIGINT, signal_handler);
+    signal(SIGUSR1, signal_handler);
+
+    setup_signal_mask(mask, oldmask);
+}
+
 void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 {
     sigemptyset(mask);
@@ -152,59 +236,94 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 
 
 
-void load_config()
+static void load_config()
 {
-    int config_file_fd;
-    int dialog_file_fd;
     buffer_t buffer;
     char* path_to_file;
+
+    initialize_buffer(&buffer);
+
+    load_config_file(&buffer);
+    
+    path_to_file = get_path_data_file(&buffer);
+
+    clear_buffer(&buffer);
+
+    load_data_file(&buffer, path_to_file);
+
+    free(path_to_file);
+    
+    initialize_config(&buffer);
+
+    free_buffer(&buffer);
+}
+
+static void load_config_file(buffer_t* config_data)
+{
+    int config_file_fd;
 
     config_file_fd = open(CONFIG_PATH, O_RDONLY);
 
     if (config_file_fd == -1)
     {
-        perror("load_config config_file_fd");
+        perror("load_config_file");
         exit(EXIT_FAILURE);
     }
 
-    initialize_buffer(&buffer);
+    read_to_buffer_from_fd(config_data, config_file_fd);
+    close(config_file_fd);
+}
 
-    read_from_fd_to_buffer(&buffer, config_file_fd);
+static char* get_path_data_file(buffer_t* config_data)
+{
+    char* path_to_file;
 
-    path_to_file = get_string(&buffer, STRING_SEPARATOR);
+    path_to_file = get_string(config_data, STRING_SEPARATOR);
 
     if (!path_to_file)
     {
-        perror("load_config path_to_file");
+        perror("get_path_data_file");
         exit(EXIT_FAILURE);
     }
+
+    return path_to_file;
+}
+
+static void load_data_file(buffer_t* config_data, char* path_to_file)
+{
+    int dialog_file_fd;
 
     dialog_file_fd = open(path_to_file, O_RDONLY);
 
-    free(path_to_file);
-
     if (dialog_file_fd == -1)
     {
-        perror("load_config dialog_file_fd");
+        perror("load_data_file");
         exit(EXIT_FAILURE);
     }
 
-    clear_buffer(&buffer);
-
-    read_from_fd_to_buffer(&buffer, dialog_file_fd);
-
-    while(is_have_info(&buffer))
-    {
-        char* str = get_string(&buffer, STRING_SEPARATOR);
-
-        printf("%s\n", str);
-
-        free(str);
-    }
-
-    free_buffer(&buffer);
+    read_to_buffer_from_fd(config_data, dialog_file_fd);
+    close(dialog_file_fd);
 }
 
+static void initialize_config(buffer_t* config_data)
+{
+    int dialog_state = welcome_state;
+    dialog_t* dialog;
+    char* str;
+
+    while(is_have_info(config_data))
+    {
+        str = get_string(config_data, STRING_SEPARATOR);
+        
+        dialog = create_dialog_t(dialog_state, str);
+
+        create_node(dialog_type, dialog);
+
+        dialog_state++;
+
+        printf("%s\n", str);
+    }
+}
 
 
 void set_timeout(struct timespec* timeout)
@@ -213,12 +332,91 @@ void set_timeout(struct timespec* timeout)
     timeout->tv_nsec = WAITING_TIME_IN_NSEC;
 }
 
+void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
+{
+    FD_ZERO(read_fds);
+    FD_ZERO(write_fds);
+
+    FD_SET(listen_socket_fd, read_fds);
+
+    
+
+}
 
 
 
+void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
+{
+
+}
 
 
 
+int accept_connection(int listen_socket_fd)
+{
+    int connected_fd;
+
+    connected_fd = try_accept_connection(listen_socket_fd);
+    
+    initialize_new_connection_session(connected_fd);
+
+    return connected_fd;    
+}
+
+static int try_accept_connection(int listen_socket_fd)
+{
+    int connected_fd;
+
+    connected_fd = accept(listen_socket_fd, NULL, NULL);
+    
+    if (connected_fd == -1)
+    {
+        perror("try_accept_connection");
+        exit(EXIT_FAILURE);
+    }
+
+    return connected_fd;
+}
+
+static void initialize_new_connection_session(int connection_fd)
+{
+    session_t* session;
+    const char* msg;
+
+    session = malloc(sizeof(session_t));
+
+    if (!session)
+    {
+        perror("initialize_new_connection_session");
+        exit(EXIT_FAILURE);
+    }
+
+    msg = get_message_for_send(welcome_state);
+
+    if (msg)
+        initialize_session(session, connection_fd, msg);
+    else
+        initialize_session(session, connection_fd, "");
+
+    create_node(session_type, (void*)session);
+}
+
+static const char* get_message_for_send(dialog_state_t state)
+{
+    dialog_t* dialog;
+
+    reset_current(dialog_type);
+
+    while(!(dialog = (dialog_t*)get_current(dialog_type)))
+    {
+        if (dialog->state == state)
+            return dialog->write_msg;
+
+        move_next(dialog_type);
+    }
+
+    return NULL;
+}
 
 
 

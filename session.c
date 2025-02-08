@@ -1,6 +1,18 @@
 #include "session.h"
 
 
+void initialize_session(session_t* session, int connected_fd, const char* msg)
+{
+    session->socket_fd = connected_fd;
+    session->current_state = welcome_state;
+    session->status_state = ready_send_info;
+
+    initialize_buffer(&session->buffer);
+
+    set_string(&session->buffer, msg);
+}
+
+
 
 /*
 int need_write(struct session_t* session_t)

@@ -21,11 +21,14 @@ void initialize_buffer(buffer_t* buffer);
 void free_buffer(buffer_t* buffer);
 
 
-void write_from_buffer_to_fd(int destination, buffer_t* source);
+void write_to_fd_from_buffer(int destination, buffer_t* source);
 
-void read_from_fd_to_buffer(buffer_t* destination, int source);
+void read_to_buffer_from_fd(buffer_t* destination, int source);
 
 char* get_string(buffer_t* buffer, char string_separator);
+
+void set_string(buffer_t* buffer, const char* str);
+
 
 void clear_buffer(buffer_t* buffer);
 

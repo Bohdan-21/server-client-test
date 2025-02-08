@@ -22,7 +22,7 @@ void free_buffer(buffer_t* buffer)
 
 
 
-void write_from_buffer_to_fd(int destination, buffer_t* source)
+void write_to_fd_from_buffer(int destination, buffer_t* source)
 {
     int result_write;
 
@@ -30,14 +30,14 @@ void write_from_buffer_to_fd(int destination, buffer_t* source)
 
     if (result_write == -1)
     {
-        perror("write_from_buffer_to_fd");
+        perror("write_to_fd_from_buffer");
         exit(EXIT_FAILURE);
     }
 
     move_left_n(source, result_write);
 }
 
-void read_from_fd_to_buffer(buffer_t* destination, int source)
+void read_to_buffer_from_fd(buffer_t* destination, int source)
 {
     int result_read;
     
@@ -54,7 +54,7 @@ void read_from_fd_to_buffer(buffer_t* destination, int source)
 
     if (result_read == -1)
     {
-        perror("read_from_fd_to_buffer");
+        perror("read_to_buffer_from_fd");
         exit(EXIT_FAILURE);
     }
 
@@ -83,6 +83,30 @@ char* get_string(buffer_t* buffer, char string_separator)
 
     return dest;
 }
+
+void set_string(buffer_t* buffer, const char* str)
+{
+    size_t size;
+
+    size = strlen(str);
+
+    clear_buffer(buffer);
+
+    if (str[size-1] != 0)
+    {
+        perror("set_string: not string");
+        return;
+    }
+    if (size > BUFFER_SIZE)
+    {
+        perror("set_string: increase BUFFER_SIZE");
+        return;
+    }
+
+    strcpy(buffer->buffer, str);
+    buffer->length = size;
+}
+
 
 void clear_buffer(buffer_t* buffer)
 {

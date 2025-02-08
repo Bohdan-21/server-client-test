@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = -Wall -g 
-OBJMODULES = list.o buffer.o
+OBJMODULES = list.o buffer.o dialog.o
 
 clean:
-	rm -f *.o buffer_test daemon_server
+	rm -f *.o buffer_test daemon_server socket_file
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c $< -o $@

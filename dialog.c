@@ -1,7 +1,5 @@
 #include "dialog.h"
 
-static dialog_t* create_dialog_t(dialog_state_t, const char*);
-
 void init_default_dialog_list()
 {
     dialog_t* welcome; /*start*/
@@ -21,7 +19,7 @@ void init_default_dialog_list()
     create_node(dialog_type, best_wishes);
 }
 
-static dialog_t* create_dialog_t(dialog_state_t state, const char* msg)
+dialog_t* create_dialog_t(dialog_state_t state, const char* msg)
 {
     dialog_t* new_dialog = malloc(sizeof(dialog_t));
 
@@ -32,4 +30,9 @@ static dialog_t* create_dialog_t(dialog_state_t state, const char* msg)
     }
 
     return new_dialog;
+}
+
+void free_dialog_data(dialog_t* dialog)
+{
+    free((void*)dialog->write_msg);
 }

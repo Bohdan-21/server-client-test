@@ -35,7 +35,7 @@ void read_test()
 
     initialize_buffer(&buffer);
 
-    read_from_fd_to_buffer(&buffer, fd);
+    read_to_buffer_from_fd(&buffer, fd);
 
     str = get_string(&buffer, '\n');
 
@@ -68,8 +68,8 @@ void write_test()
 
     initialize_buffer(&buffer);
 
-    read_from_fd_to_buffer(&buffer, read_fd);
-    write_from_buffer_to_fd(write_fd, &buffer);
+    read_to_buffer_from_fd(&buffer, read_fd);
+    write_to_fd_from_buffer(write_fd, &buffer);
 
     close(write_fd);
     close(read_fd);
@@ -85,7 +85,7 @@ void get_string_NULL()
 
     initialize_buffer(&buffer);
 
-    read_from_fd_to_buffer(&buffer, fd);
+    read_to_buffer_from_fd(&buffer, fd);
 
     str = get_string(&buffer, '\n');
     
@@ -105,7 +105,7 @@ void open_config_file()
 
     initialize_buffer(&buffer);
 
-    read_from_fd_to_buffer(&buffer, confgi_fd);
+    read_to_buffer_from_fd(&buffer, confgi_fd);
 
     dialog_path = get_string(&buffer, '\n');
 
@@ -114,7 +114,7 @@ void open_config_file()
     dialog_fd = open(dialog_path, O_RDONLY);
     re_write_fd = open("./test/rewrite.txt", O_CREAT | O_WRONLY, 0644);
 
-    read_from_fd_to_buffer(&buffer, dialog_fd);
+    read_to_buffer_from_fd(&buffer, dialog_fd);
 
-    write_from_buffer_to_fd(re_write_fd, &buffer);
+    write_to_fd_from_buffer(re_write_fd, &buffer);
 }

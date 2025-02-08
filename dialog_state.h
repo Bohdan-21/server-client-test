@@ -3,12 +3,13 @@
 
 typedef enum dialog_state
 {
-    welcome_state,
+    welcome_state = 1,
     food_state,
     town_state,
     exit_state,
 
     kill_state
+    
 } dialog_state_t;
 
 #endif

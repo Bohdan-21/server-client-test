@@ -16,16 +16,15 @@ typedef enum
 
 typedef struct
 {
-    int sd;                     /*its key*/
+    int socket_fd;                     /*its key*/
     dialog_state_t current_state;
     status_state_t status_state;
 
-    buffer_t read_buffer;
-    buffer_t write_buffer;
+    buffer_t buffer;
 } session_t;
 
 
-
+void initialize_session(session_t*, int connected_fd, const char* msg);
 
 
 

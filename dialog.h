@@ -13,6 +13,10 @@ typedef struct
 
 void init_default_dialog_list();
 
+dialog_t* create_dialog_t(dialog_state_t state, const char* msg);
+
+void free_dialog_data(dialog_t* dialog);
+
 
 
 

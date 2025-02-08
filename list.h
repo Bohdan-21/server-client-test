@@ -11,7 +11,9 @@ lifetime, while dialog states persist.
 
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "session.h"
+#include "dialog.h"
 
 
 typedef struct node node_t;
@@ -45,8 +47,6 @@ struct node
     void* pointer_on_data;
     node_t* next;
 };
-
-
 
 
 
