@@ -20,13 +20,13 @@ typedef struct
     dialog_state_t current_state;
     status_state_t status_state;
 
-    buffer_t buffer;
+    buffer_t* buffer;
 } session_t;
 
 
-void initialize_session(session_t*, int connected_fd, const char* msg);
+session_t* create_session(int connected_fd, const char* msg);
 
-
+void free_session(session_t* session);
 
 
 

@@ -24,7 +24,7 @@ int main()
 void read_test()
 {
     int fd = open("./config/dialog.txt", O_RDONLY);
-    buffer_t buffer;
+    buffer_t* buffer;
     char* str;
 
     if (fd == -1)
@@ -33,28 +33,39 @@ void read_test()
         exit(EXIT_FAILURE);
     }
 
-    initialize_buffer(&buffer);
+    buffer = create_buffer();
 
-    read_to_buffer_from_fd(&buffer, fd);
+    read_to_buffer_from_fd(buffer, fd);
 
-    str = get_string(&buffer, '\n');
-
-    printf("%s\n", str);
-
-
-    str = get_string(&buffer, '\n');
+    str = get_string(buffer, '\n');
 
     printf("%s\n", str);
 
+    free(str);
 
-    str = get_string(&buffer, '\n');
+
+    str = get_string(buffer, '\n');
+
+    printf("%s\n", str);
+
+    free(str);
+
+
+    str = get_string(buffer, '\n');
 
     printf("%s\n", str);
     
+    free(str);
 
-    str = get_string(&buffer, '\n');
+
+    str = get_string(buffer, '\n');
+
+    free_buffer(buffer);
 
     printf("%s\n", str);
+
+    free(str);
+
 
     close(fd);
 }
@@ -64,12 +75,14 @@ void write_test()
     int write_fd = open("./test/write_test", O_CREAT | O_WRONLY, 0644);
     int read_fd = open("./config/dialog.txt", O_RDONLY);
 
-    buffer_t buffer;
+    buffer_t* buffer;
 
-    initialize_buffer(&buffer);
+    buffer = create_buffer();
 
-    read_to_buffer_from_fd(&buffer, read_fd);
-    write_to_fd_from_buffer(write_fd, &buffer);
+    read_to_buffer_from_fd(buffer, read_fd);
+    write_to_fd_from_buffer(write_fd, buffer);
+
+    free_buffer(buffer);
 
     close(write_fd);
     close(read_fd);
@@ -78,19 +91,21 @@ void write_test()
 void get_string_NULL()
 {
     int fd;
-    buffer_t buffer;
+    buffer_t* buffer;
     char* str;
 
     fd = open("./test/without_separator", O_RDONLY);
 
-    initialize_buffer(&buffer);
+    buffer = create_buffer();
 
-    read_to_buffer_from_fd(&buffer, fd);
+    read_to_buffer_from_fd(buffer, fd);
 
-    str = get_string(&buffer, '\n');
+    str = get_string(buffer, '\n');
     
     if (!str)
         printf("All good separator not find");    
+
+    free_buffer(buffer);
 }
 
 void open_config_file()
@@ -98,23 +113,37 @@ void open_config_file()
     int confgi_fd;
     int dialog_fd;
     int re_write_fd;
-    buffer_t buffer;
+    buffer_t* buffer;
     char* dialog_path;
 
     confgi_fd = open("./config/config.txt", O_RDONLY);
 
-    initialize_buffer(&buffer);
+    buffer = create_buffer();
 
-    read_to_buffer_from_fd(&buffer, confgi_fd);
+    read_to_buffer_from_fd(buffer, confgi_fd);
 
-    dialog_path = get_string(&buffer, '\n');
+    close(confgi_fd);
 
-    clear_buffer(&buffer);
+
+    dialog_path = get_string(buffer, '\n');
+
+    clear_buffer(buffer);
+
 
     dialog_fd = open(dialog_path, O_RDONLY);
+
+    free(dialog_path);
+
     re_write_fd = open("./test/rewrite.txt", O_CREAT | O_WRONLY, 0644);
 
-    read_to_buffer_from_fd(&buffer, dialog_fd);
+    read_to_buffer_from_fd(buffer, dialog_fd);
 
-    write_to_fd_from_buffer(re_write_fd, &buffer);
+    close(dialog_fd);
+
+
+    write_to_fd_from_buffer(re_write_fd, buffer);
+
+    free_buffer(buffer);
+
+    close(re_write_fd);
 }

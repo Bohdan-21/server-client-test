@@ -91,6 +91,12 @@ static void initialize_new_connection_session(int connection_fd);
 static const char* get_message_for_send(dialog_state_t state);
 
 
+
+static void remove_ended_session();
+
+
+
+
 int main()
 {
     int listen_socket_fd;
@@ -146,6 +152,7 @@ int main()
                 event_handler(&read_fds, &write_fds, listen_socket_fd);
         }
 
+        remove_ended_session();
         /*event processing*/
     }
 
@@ -238,24 +245,24 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 
 static void load_config()
 {
-    buffer_t buffer;
+    buffer_t* buffer;
     char* path_to_file;
 
-    initialize_buffer(&buffer);
+    buffer = create_buffer();
 
-    load_config_file(&buffer);
+    load_config_file(buffer);
     
-    path_to_file = get_path_data_file(&buffer);
+    path_to_file = get_path_data_file(buffer);
 
-    clear_buffer(&buffer);
+    clear_buffer(buffer);
 
-    load_data_file(&buffer, path_to_file);
+    load_data_file(buffer, path_to_file);
 
     free(path_to_file);
     
-    initialize_config(&buffer);
+    initialize_config(buffer);
 
-    free_buffer(&buffer);
+    free_buffer(buffer);
 }
 
 static void load_config_file(buffer_t* config_data)
@@ -334,13 +341,24 @@ void set_timeout(struct timespec* timeout)
 
 void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
 {
+    session_t* session;
+
     FD_ZERO(read_fds);
     FD_ZERO(write_fds);
 
     FD_SET(listen_socket_fd, read_fds);
 
-    
+    reset_current(session_type);
 
+    while(!(session = (session_t*)(get_current(session_type))))
+    {
+        if (session->status_state == ready_send_info)
+            FD_SET(session->socket_fd, write_fds);
+        else if (session->status_state == ready_receive_info)
+            FD_SET(session->socket_fd, read_fds);
+
+        move_next(session_type);
+    }
 }
 
 
@@ -383,20 +401,9 @@ static void initialize_new_connection_session(int connection_fd)
     session_t* session;
     const char* msg;
 
-    session = malloc(sizeof(session_t));
-
-    if (!session)
-    {
-        perror("initialize_new_connection_session");
-        exit(EXIT_FAILURE);
-    }
-
     msg = get_message_for_send(welcome_state);
 
-    if (msg)
-        initialize_session(session, connection_fd, msg);
-    else
-        initialize_session(session, connection_fd, "");
+    session = create_session(connection_fd, msg ? msg : "");
 
     create_node(session_type, (void*)session);
 }
@@ -420,7 +427,10 @@ static const char* get_message_for_send(dialog_state_t state)
 
 
 
-
+static void remove_ended_session()
+{
+    
+}
 
 
 

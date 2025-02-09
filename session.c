@@ -1,15 +1,27 @@
 #include "session.h"
 
 
-void initialize_session(session_t* session, int connected_fd, const char* msg)
+session_t* create_session(int connected_fd, const char* msg)
 {
+    session_t* session;
+
+    session = get_mem(sizeof(session_t));
+
     session->socket_fd = connected_fd;
     session->current_state = welcome_state;
     session->status_state = ready_send_info;
 
-    initialize_buffer(&session->buffer);
+    session->buffer = create_buffer();
 
-    set_string(&session->buffer, msg);
+    copy_string_to_buffer(session->buffer, msg);
+
+    return session;
+}
+
+void free_session(session_t* session)
+{
+    free_buffer(session->buffer);
+    free(session);
 }
 
 

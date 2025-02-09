@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "base.h"
+
 #define BUFFER_SIZE 128
 #define END_LINE_SYMBOL '\n'
 
@@ -16,7 +18,7 @@ typedef struct
     
 } buffer_t;
 
-void initialize_buffer(buffer_t* buffer);
+buffer_t* create_buffer();
 
 void free_buffer(buffer_t* buffer);
 
@@ -27,7 +29,7 @@ void read_to_buffer_from_fd(buffer_t* destination, int source);
 
 char* get_string(buffer_t* buffer, char string_separator);
 
-void set_string(buffer_t* buffer, const char* str);
+void copy_string_to_buffer(buffer_t* dest, const char* src);
 
 
 void clear_buffer(buffer_t* buffer);

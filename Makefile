@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -g 
-OBJMODULES = list.o buffer.o dialog.o
+OBJMODULES = list.o buffer.o dialog.o base.o session.o
 
 clean:
 	rm -f *.o buffer_test daemon_server socket_file
