@@ -28,7 +28,7 @@ SIGINT - stop server
 #define SOCKET_PATH "./socket_file"
 #define CONFIG_PATH "./config/config.txt"
 
-#define STRING_SEPARATOR '\n'
+
 
 
 #define GET_PROCESS_ID_WHEN_START
@@ -77,19 +77,27 @@ void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd);
 
 
 
-void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd);
-
-
-
-
 static int accept_connection(int listen_socket_fd);
 
 static int try_accept_connection(int listen_socket_fd);
+
+static void set_nonblock_mode_for_socket(int connection_fd);
 
 static void initialize_new_connection_session(int connection_fd);
 
 static const char* get_message_for_send(dialog_state_t state);
 
+
+
+static void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd);
+
+static void handle_write_event(session_t* session);
+
+static void handle_read_event(session_t* session);
+
+static void try_change_state_session(session_t* session);
+
+static const dialog_t* get_next_dialog(dialog_state_t dialog_state);
 
 
 static void remove_ended_session();
@@ -285,7 +293,7 @@ static char* get_path_data_file(buffer_t* config_data)
 {
     char* path_to_file;
 
-    path_to_file = get_string(config_data, STRING_SEPARATOR);
+    path_to_file = get_string(config_data);
 
     if (!path_to_file)
     {
@@ -318,9 +326,9 @@ static void initialize_config(buffer_t* config_data)
     dialog_t* dialog;
     char* str;
 
-    while(is_have_info(config_data))
+    while(!is_buffer_empty(config_data))
     {
-        str = get_string(config_data, STRING_SEPARATOR);
+        str = get_string(config_data);
         
         dialog = create_dialog_t(dialog_state, str);
 
@@ -350,22 +358,15 @@ void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
 
     reset_current(session_type);
 
-    while(!(session = (session_t*)(get_current(session_type))))
+    while((session = (session_t*)(get_current(session_type))))
     {
-        if (session->status_state == ready_send_info)
+        if (session->dialog_status == ready_send_info)
             FD_SET(session->socket_fd, write_fds);
-        else if (session->status_state == ready_receive_info)
+        else if (session->dialog_status == ready_receive_info)
             FD_SET(session->socket_fd, read_fds);
 
         move_next(session_type);
     }
-}
-
-
-
-void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
-{
-
 }
 
 
@@ -376,6 +377,8 @@ int accept_connection(int listen_socket_fd)
 
     connected_fd = try_accept_connection(listen_socket_fd);
     
+    set_nonblock_mode_for_socket(connected_fd);
+
     initialize_new_connection_session(connected_fd);
 
     return connected_fd;    
@@ -396,6 +399,11 @@ static int try_accept_connection(int listen_socket_fd)
     return connected_fd;
 }
 
+static void set_nonblock_mode_for_socket(int connection_fd)
+{
+
+}
+
 static void initialize_new_connection_session(int connection_fd)
 {
     session_t* session;
@@ -414,7 +422,7 @@ static const char* get_message_for_send(dialog_state_t state)
 
     reset_current(dialog_type);
 
-    while(!(dialog = (dialog_t*)get_current(dialog_type)))
+    while((dialog = (dialog_t*)get_current(dialog_type)))
     {
         if (dialog->state == state)
             return dialog->write_msg;
@@ -424,6 +432,75 @@ static const char* get_message_for_send(dialog_state_t state)
 
     return NULL;
 }
+
+
+
+
+static void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
+{
+    session_t* session;
+
+    reset_current(session_type);
+
+    while((session = (session_t*)get_current(session_type)))
+    {
+        if (session->dialog_status == ready_send_info)
+        {
+            if (FD_ISSET(session->socket_fd, write_fds))
+                handle_write_event(session);
+        }
+        else if (session->dialog_status == ready_receive_info)
+        {
+            if (FD_ISSET(session->socket_fd, read_fds))
+                handle_read_event(session);
+        }
+
+        try_change_state_session(session);
+        move_next(session_type);
+    }
+}
+
+static void handle_write_event(session_t* session)
+{
+    write_data(session);
+}
+
+static void handle_read_event(session_t* session)
+{
+    read_data(session);
+}
+
+static void try_change_state_session(session_t* session)
+{
+    dialog_state_t dialog_state;
+
+    if (is_ready_change_session_status(session))
+    {
+        dialog_state = get_current_dialog_state(session);
+
+        
+
+        change_session_status(session);
+    }
+}
+
+static const dialog_t* get_next_dialog(dialog_state_t dialog_state)
+{
+    dialog_t* dialog;
+
+    reset_current(dialog_type);
+
+    while ((dialog = (dialog_t*) get_current(dialog_type)))
+    {
+        if (dialog->state == dialog_state)
+        {
+            move_next(dialog_type);
+            return (dialog_t*)get_current(dialog_type);
+        }
+        move_next(dialog_type);
+    }
+}
+
 
 
 

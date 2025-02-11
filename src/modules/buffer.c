@@ -5,7 +5,6 @@ static void move_left_n(buffer_t* buffer, int n);
 static int get_length_free_space_in_buffer(buffer_t*);
 static char* get_last_position_in_buffer(buffer_t*);
 static void update_buffer_length(buffer_t*, int);
-static int find_string(buffer_t*, char);
 
 buffer_t* create_buffer()
 {
@@ -71,9 +70,9 @@ void read_to_buffer_from_fd(buffer_t* destination, int source)
 + 1 gives guarantee extract string separator. If we have string:"\n" then end_line = 0, 
 and we can use contruction dest[end_line] = 0, which present correct string
 */
-char* get_string(buffer_t* buffer, char string_separator)
+char* get_string(buffer_t* buffer)
 {
-    int end_string = find_string(buffer, string_separator);
+    int end_string = find_string(buffer);
     char* dest;
 
     if (end_string == -1)
@@ -119,9 +118,9 @@ void clear_buffer(buffer_t* buffer)
     buffer->length = 0;
 }
 
-int is_have_info(buffer_t* buffer)
+int is_buffer_empty(buffer_t* buffer)
 {
-    return buffer->length;
+    return buffer->length == 0;
 }
 
 
@@ -163,13 +162,13 @@ static void update_buffer_length(buffer_t* buffer, int length_change)
     buffer->length += length_change;
 }
 
-static int find_string(buffer_t* buffer, char string_separator)
+int find_string(buffer_t* buffer)
 {
     int end_string = -1;
     int i = 0;
     for (; i < buffer->length; i++)
     {
-        if (buffer->buffer[i] == string_separator)
+        if (buffer->buffer[i] == STRING_SEPARATOR)
         {
             end_string = i;
             break;

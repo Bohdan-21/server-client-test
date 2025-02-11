@@ -11,14 +11,14 @@ typedef enum
     ready_receive_info,
 
     ready_change_state
-} status_state_t;
+} dialog_status_t;
 
 
 typedef struct
 {
     int socket_fd;                     /*its key*/
-    dialog_state_t current_state;
-    status_state_t status_state;
+    dialog_state_t dialog_state;
+    dialog_status_t dialog_status;
 
     buffer_t* buffer;
 } session_t;
@@ -30,21 +30,20 @@ void free_session(session_t* session);
 
 
 
+void write_data(session_t* session);
+
+void read_data(session_t* session);
 
 
 
+int is_ready_change_session_status(session_t* session);
+
+dialog_state_t get_current_dialog_state(session_t* session);
+
+void change_session_status(session_t* session);
 
 
 
-
-
-int need_write(session_t*);
-
-int received_info_for_write(session_t*);
-
-void reset_received_info_for_write(session_t*);
-
-void set_write_info(session_t*, const char*);
 
 
 #endif
