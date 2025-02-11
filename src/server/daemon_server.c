@@ -13,10 +13,10 @@ SIGINT - stop server
 #include <sys/select.h>
 #include <fcntl.h>
 
-#include "list.h"
-#include "buffer.h"
-#include "dialog.h"
-#include "dialog_state.h"
+#include "../modules/list.h"
+#include "../modules/buffer.h"
+#include "../modules/dialog.h"
+#include "../modules/dialog_state.h"
 
 #define NOTHING_DO 0
 #define RELOAD_CONFIG 1

@@ -3,6 +3,7 @@
         "un.h": "c",
         "socket.h": "c",
         "signal.h": "c",
-        "buffer.h": "c"
+        "buffer.h": "c",
+        "dialog_state.h": "c"
     }
 }

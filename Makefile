@@ -1,15 +1,34 @@
 CC = gcc
 CFLAGS = -Wall -g 
-OBJMODULES = list.o buffer.o dialog.o base.o session.o
+SRC_DIR = src
+OBJ_DIR = obj
+BIN_DIR = bin
+SERVER_DIR = server
+CLIENT_DIR = client
+MODULES_DIR = modules
+SOCKET_FILE = socket_file
 
-clean:
-	rm -f *.o buffer_test daemon_server socket_file
+SRCFILES = $(wildcard $(SRC_DIR)/$(MODULES_DIR)/*.c)
+OBJMODULES = $(patsubst $(SRC_DIR)/$(MODULES_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCFILES));
 
-%.o: %.c %.h
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/$(MODULES_DIR)/%.c $(SRC_DIR)/$(MODULES_DIR)/%.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-buffer_test: buffer_test.c $(OBJMODULES)
+$(BIN_DIR)/$(SERVER_DIR):
+	mkdir -p $(BIN_DIR)/$(SERVER_DIR)
+
+$(BIN_DIR)/$(CLIENT_DIR):
+	mkdir -p $(BIN_DIR)/$(CLIENT_DIR)
+
+$(BIN_DIR)/$(SERVER_DIR)/daemon_server: $(SRC_DIR)/$(SERVER_DIR)/daemon_server.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
-daemon_server: daemon_server.c $(OBJMODULES)
-	$(CC) $(CFLAGS) $^ -o $@
+
+daemon_server: mk_server_dir $(BIN_DIR)/$(SERVER_DIR)/daemon_server
+
+mk_server_dir: $(BIN_DIR)/$(SERVER_DIR)
+
+
+clean:
+	rm -rf $(OBJ_DIR)/* $(BIN_DIR)/* $(SOCKET_FILE)

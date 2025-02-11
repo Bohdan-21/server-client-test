@@ -21,7 +21,7 @@
         "name": "Debug daemon_server",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/daemon_server",
+        "program": "${workspaceFolder}/bin/server/daemon_server",
         "args": [],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
