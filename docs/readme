@@ -1,3 +1,63 @@
+# Program  
+- **Server**  
+- **Client**  
+
+## Modules  
+- **list**:  
+  - Stores session and dialog objects.  
+
+- **buffer**:  
+  - Manages text data, including searching and manipulating strings.  
+
+- **dialog**:  
+  - Represents a simple object containing a sentence and its state.  
+  - Example: A "welcome state" might include `state: "welcome_state"` and `sentence: "Hello dear client"`.  
+  - All dialog objects are stored in a list.  
+
+- **session**:  
+  - Stores client connection data, tracks the current dialog state, and keeps client responses to server questions.  
+
+## Server  
+- Starts a local socket and listens for incoming connections.  
+- Accepts connections and initializes a new session for each client.  
+- All streams operate in **non-blocking mode**.  
+- Uses `pselect` to wait for client readiness (read/write operations).  
+- Handles signals, ensuring proper session cleanup before shutdown:  
+  - `SIGUSR1` - Reloads configuration (reloads dialogs from a file).  
+  - `SIGINT` - Stops the server.  
+- Removes inactive connections.  
+- Properly handles connection shutdowns.  
+
+## Client  
+- Connects to the server.  
+- Waits for the server to send information.  
+- Responds to questions and sends answers to the server.  
+- Properly handles connection shutdowns.  
+
+## Base  
+- Contains reusable functionality, such as reading/writing from file descriptors.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 нужно сформировать требование к серверу, и клиенту.
 
 Во первых сервер должен состоять из нескольких компонентов(модулей)
