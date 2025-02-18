@@ -4,6 +4,8 @@
         "socket.h": "c",
         "signal.h": "c",
         "buffer.h": "c",
-        "dialog_state.h": "c"
+        "dialog_state.h": "c",
+        "custom_io.h": "c",
+        "dialog.h": "c"
     }
 }

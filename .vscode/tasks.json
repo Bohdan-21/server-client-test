@@ -18,6 +18,15 @@
           "daemon_server"
         ],
         "group": { "kind": "build", "isDefault": true }
+      },
+      {
+        "label": "build_debug_test_custom_io",
+        "type": "shell",
+        "command": "make",
+        "args": [
+          "test_custom_io"
+        ],
+        "group": { "kind": "build", "isDefault": true }
       }
     ]
   }

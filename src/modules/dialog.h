@@ -3,17 +3,17 @@
 
 #include "list.h"
 #include "dialog_state.h"
+#include "base.h"
 
 typedef struct 
 {
-    dialog_state_t state;/*key*/
-    const char* write_msg;
+    int dialog_id;/*key*/
+    const char* msg;
 } dialog_t;
 
 
-void init_default_dialog_list();
 
-dialog_t* create_dialog_t(dialog_state_t state, const char* msg);
+dialog_t* create_dialog_t(int dialog_id, const char* msg);
 
 void free_dialog_data(dialog_t* dialog);
 

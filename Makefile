@@ -8,6 +8,8 @@ CLIENT_DIR = client
 MODULES_DIR = modules
 SOCKET_FILE = socket_file
 
+TEST_DIR = test
+
 SRCFILES = $(wildcard $(SRC_DIR)/$(MODULES_DIR)/*.c)
 OBJMODULES = $(patsubst $(SRC_DIR)/$(MODULES_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCFILES));
 
@@ -24,6 +26,11 @@ $(BIN_DIR)/$(CLIENT_DIR):
 $(BIN_DIR)/$(SERVER_DIR)/daemon_server: $(SRC_DIR)/$(SERVER_DIR)/daemon_server.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
+$(BIN_DIR)/test_custom_io: $(TEST_DIR)/test_custom_io.c $(OBJMODULES)
+	$(CC) $(CFLAGS) $^ -o $@
+
+
+test_custom_io: $(BIN_DIR)/test_custom_io
 
 daemon_server: mk_server_dir $(BIN_DIR)/$(SERVER_DIR)/daemon_server
 

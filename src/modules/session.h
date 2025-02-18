@@ -3,6 +3,7 @@
 
 #include "buffer.h"
 #include "dialog_state.h"
+#include "custom_io.h"
 
 
 typedef enum
@@ -11,39 +12,40 @@ typedef enum
     ready_receive_info,
 
     ready_change_state
-} dialog_status_t;
+} session_state_t;
 
 
 typedef struct
 {
     int socket_fd;                     /*its key*/
-    dialog_state_t dialog_state;
-    dialog_status_t dialog_status;
+    int current_dialog_id;
+    session_state_t state;
 
     buffer_t* buffer;
 } session_t;
 
 
-session_t* create_session(int connected_fd, const char* msg);
+session_t* create_session(int connected_fd, int current_dialog_id, const char* msg);
 
 void free_session(session_t* session);
 
 
 
-void write_data(session_t* session);
+int get_session_fd(session_t* session);
 
-void read_data(session_t* session);
+int get_session_current_dialog_id(session_t* session);
 
+session_state_t get_session_state(session_t* session);
 
-
-int is_ready_change_session_status(session_t* session);
-
-dialog_state_t get_current_dialog_state(session_t* session);
-
-void change_session_status(session_t* session);
+buffer_t* get_session_buffer(session_t* session);
 
 
+void update_session_current_dialog_id(session_t* session, int new_dialog_id);
 
+
+
+void try_change_session_state(session_t* session, int current_dialog_id, 
+                              const char* msg, char string_separator);
 
 
 #endif

@@ -1,18 +1,20 @@
 #include "session.h"
 
-session_t* create_session(int connected_fd, const char* msg)
+
+static void update_session_data(session_t* session, int current_dialog_id, const char* msg);
+
+
+
+session_t* create_session(int connected_fd, int current_dialog_id, const char* msg)
 {
     session_t* session;
 
     session = get_mem(sizeof(session_t));
 
     session->socket_fd = connected_fd;
-    session->dialog_state = welcome_state;
-    session->dialog_status = ready_send_info;
-
     session->buffer = create_buffer();
-
-    copy_string_to_buffer(session->buffer, msg);
+    
+    update_session_data(session, current_dialog_id, msg);
 
     return session;
 }
@@ -25,44 +27,56 @@ void free_session(session_t* session)
 
 
 
-void write_data(session_t* session)
+int get_session_fd(session_t* session)
 {
-    write_to_fd_from_buffer(session->socket_fd, session->buffer);
+    return session->socket_fd;
 }
 
-void read_data(session_t* session)
+int get_session_current_dialog_id(session_t* session)
 {
-    read_to_buffer_from_fd(session->buffer, session->socket_fd);
+    return session->current_dialog_id;
+}
+
+session_state_t get_session_state(session_t* session)
+{
+    return session->state;
+}
+
+buffer_t* get_session_buffer(session_t* session)
+{
+    return session->buffer;
 }
 
 
-/*
-ready_change_status && !ready_change_state --> update: dialog_status
-ready_change_status && ready_change_state --> update: dialog_status & dialog_state & 
-                                                      buffer
-*/
-int is_ready_change_session_status(session_t* session)
+
+void update_session_current_dialog_id(session_t* session, int new_dialog_id)
 {
-    if (session->dialog_status == ready_send_info)
+    session->current_dialog_id = new_dialog_id;
+}
+
+
+
+static void update_session_data(session_t* session, int current_dialog_id, const char* msg)
+{
+    session->current_dialog_id = current_dialog_id;
+    session->state = ready_send_info;
+    copy_string_to_buffer(session->buffer, msg);
+}
+
+
+
+void try_change_session_state(session_t* session, int current_dialog_id, 
+                              const char* msg, char string_separator)
+{
+    if (session->state == ready_send_info)
     {
         if (is_buffer_empty(session->buffer))
-            return 1;
+            session->state = ready_receive_info;
     }
-    else if (session->dialog_status == ready_receive_info)
+    else if (session->state == ready_receive_info)
     {
-        if (find_string(session->buffer))
-            return 1;
+        if (find_string(session->buffer, string_separator) != -1)
+            update_session_data(session, current_dialog_id, msg);
     }
-
-    return 0;
 }
 
-dialog_state_t get_current_dialog_state(session_t* session)
-{
-    return session->dialog_state;
-}
-
-void change_session_status(session_t* session)
-{
-
-}

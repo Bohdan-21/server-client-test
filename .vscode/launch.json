@@ -32,6 +32,22 @@
           { "text": "-enable-pretty-printing", "description": "Enable pretty printing", "ignoreFailures": true }
         ],
         "preLaunchTask": "build_debug_daemon_server"
+      },
+      {
+        "name": "Debug test_custom_io",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/bin/test_custom_io",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "setupCommands": [
+          { "text": "-enable-pretty-printing", "description": "Enable pretty printing", "ignoreFailures": true }
+        ],
+        "preLaunchTask": "build_debug_test_custom_io"
       }
     ]
   }

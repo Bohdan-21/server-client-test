@@ -83,7 +83,7 @@ static void remove_session_node(int sd, node_t** pointer)
 
             (*list_for_session).count--;
 
-            free(session);
+            free_session(session);
             free(rm_node);
 
             return;
@@ -122,9 +122,10 @@ static void recursive_remove(node_t** pointer, list_type_t lt)
 
     if (lt == dialog_type)
         free_dialog_data((dialog_t*)(**pointer).pointer_on_data);
+    else if (lt == session_type)
+        free_session((session_t*)(**pointer).pointer_on_data);
     /*TODO: add branch else if need correct free memory for session*/
 
-    free((**pointer).pointer_on_data);
     free(*pointer);
 }
 

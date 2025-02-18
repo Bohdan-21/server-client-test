@@ -14,3 +14,19 @@ void* get_mem(size_t size)
 
     return new_allocated_mem;
 }
+
+char* make_copy_string(const char* str)
+{
+    size_t size;
+    char *new_str;
+
+    size = strlen(str) + 1;/*+ 1 for include "\0" */
+    new_str = get_mem(size);
+
+    strcpy(new_str, str);
+
+    return new_str;
+}
+
+
+
