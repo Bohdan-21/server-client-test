@@ -26,7 +26,6 @@ SIGINT - stop server
 #define WAITING_TIME_IN_SEC 5
 #define WAITING_TIME_IN_NSEC 0
 
-#define STRING_SEPARATOR '\n'
 #define DEFAULT_DIALOG_ID 1
 #define ERROR_DIALOG_ID -1
 
@@ -92,7 +91,7 @@ static int try_accept_connection(int listen_socket_fd);
 
 static int try_set_nonblock_mode_for_socket(int connection_fd);
 
-static void initialize_new_connection_session(int connection_fd);
+static int initialize_new_connection_session(int connection_fd);
 
 
 
@@ -310,14 +309,15 @@ static char* get_path_data_file(buffer_t* config_data)
 {
     char* path_to_file;
 
-    path_to_file = get_string(config_data, STRING_SEPARATOR);
-    path_to_file = make_c_string(path_to_file);
-
+    path_to_file = get_string(config_data);
+    
     if (!path_to_file)
     {
         perror("get_path_data_file");
         exit(EXIT_FAILURE);
     }
+
+    path_to_file = make_c_string(path_to_file);
 
     return path_to_file;
 }
@@ -342,10 +342,11 @@ static void initialize_config(buffer_t* buffer, const char* path_to_file)
     {
         if (result_read == -1)
         {
+            perror("initialize_config: read from fd");
             exit(EXIT_FAILURE);/*cant initialize config*/
         }
 
-        while ((str = get_string(buffer, STRING_SEPARATOR)))
+        while ((str = get_string(buffer)))
         {
             dialog = create_dialog_t(dialog_id, str);
             dialog_id++;
@@ -353,10 +354,9 @@ static void initialize_config(buffer_t* buffer, const char* path_to_file)
             create_node(dialog_type, dialog);
 
             /*TODO: remove this*/
-            str = make_c_string(str, STRING_SEPARATOR);
+            str = make_c_string(str);
             printf("%s\n", str);
             /**/
-
             free(str);
         }
     }
@@ -411,8 +411,8 @@ int accept_connection(int listen_socket_fd)
 
     if (result != -1)
     {
-        initialize_new_connection_session(connected_fd);
-        return connected_fd;    
+        if (initialize_new_connection_session(connected_fd) != -1)
+            return connected_fd;    
     }
 
     return -1;
@@ -453,7 +453,7 @@ static int try_set_nonblock_mode_for_socket(int connection_fd)
     return 0;
 }
 
-static void initialize_new_connection_session(int connection_fd)
+static int initialize_new_connection_session(int connection_fd)
 {
     session_t* session;
     const dialog_t* dialog;
@@ -464,7 +464,7 @@ static void initialize_new_connection_session(int connection_fd)
     dialog = get_dialog(current_dialog_id, false);
 
     if (!dialog)
-        return;
+        return -1;
     
     current_dialog_id = dialog->dialog_id;
     msg = dialog->msg;
@@ -472,6 +472,8 @@ static void initialize_new_connection_session(int connection_fd)
     session = create_session(connection_fd, current_dialog_id, msg);
 
     create_node(session_type, (void*)session);
+
+    return 0;
 }
 
 
@@ -564,7 +566,7 @@ static void change_session_state(session_t* session)
     current_dialog_id = dialog->dialog_id;
     msg = dialog->msg;
     
-    try_change_session_state(session, current_dialog_id, msg, STRING_SEPARATOR);
+    try_change_session_state(session, current_dialog_id, msg);
 }
 
 static const dialog_t* get_dialog(dialog_state_t current_dialog_id, int need_next_dialog)
@@ -595,7 +597,8 @@ static void prepare_session_for_close(session_t* session)
 }
 
 
-
+/*TODO: need fix undefined behaviour when we remove some session what stored in
+get_current, and how we can access to memory?*/
 static void remove_ended_session()
 {
     int connection_fd;

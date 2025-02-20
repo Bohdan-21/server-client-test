@@ -47,6 +47,16 @@ char* make_copy_string(const char* str)
     return new_str;
 }
 
+int make_copy_string_to_string(char* dest, const char* src)
+{
+    int length = get_separator_position(src) + 1;
+
+    memmove(dest, src, length);
+
+    return length;
+}
+
+
 char* make_c_string(char* str)
 {
     int i;

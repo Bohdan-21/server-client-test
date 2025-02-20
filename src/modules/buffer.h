@@ -10,7 +10,6 @@
 
 
 #define BUFFER_SIZE 128
-#define STRING_SEPARATOR '\n'
 
 typedef struct
 {
@@ -55,15 +54,16 @@ void read_to_buffer_from_fd(buffer_t* destination, int source);
 remove this
 */
 
-char* get_string(buffer_t* buffer, char string_separator);
+char* get_string(buffer_t* buffer);
 
 void copy_string_to_buffer(buffer_t* dest, const char* src);
 
-int find_string(buffer_t* buffer, char string_separator);
 
 
 void clear_buffer(buffer_t* buffer);
 
 int is_buffer_empty(buffer_t* buffer);
+
+int is_have_string(buffer_t* buffer);
 
 #endif

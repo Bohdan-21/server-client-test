@@ -66,7 +66,7 @@ static void update_session_data(session_t* session, int current_dialog_id, const
 
 
 void try_change_session_state(session_t* session, int current_dialog_id, 
-                              const char* msg, char string_separator)
+                              const char* msg)
 {
     if (session->state == ready_send_info)
     {
@@ -75,7 +75,7 @@ void try_change_session_state(session_t* session, int current_dialog_id,
     }
     else if (session->state == ready_receive_info)
     {
-        if (find_string(session->buffer, string_separator) != -1)
+        if (is_have_string(session->buffer) != -1)
             update_session_data(session, current_dialog_id, msg);
     }
 }

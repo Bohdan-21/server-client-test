@@ -107,49 +107,31 @@ void read_to_buffer_from_fd(buffer_t* destination, int source)
     update_buffer_length(destination, result_read);
 }
 
-/*
-return extracted correct string "...\0" or NULL
-+ 1 gives guarantee extract string separator. If we have string:"\n" then end_line = 0, 
-and we can use contruction dest[end_line] = 0, which present correct string
-*/
-char* get_string(buffer_t* buffer, char string_separator)
+/*return extracted "dirty" string "...\n" or NULL*/
+char* get_string(buffer_t* buffer)
 {
-    int end_string = find_string(buffer, string_separator);
     char* dest;
+    int position;
 
-    if (end_string == -1)
+    position = is_have_separator(buffer->buffer, buffer->length);
+
+    if (position == -1)
         return NULL;
 
-    dest = get_mem(end_string + 1);
+    dest = make_copy_string(buffer->buffer);
 
-    memmove(dest, buffer->buffer, end_string + 1);
-
-    move_left_n(buffer, end_string + 1);
+    move_left_n(buffer, position + 1);
 
     return dest;
 }
 
 void copy_string_to_buffer(buffer_t* buffer, const char* str)
-{
-    size_t size;
+{   
+    int length;
 
-    size = strlen(str);
+    length = make_copy_string_to_string(buffer->buffer, str);
 
-    clear_buffer(buffer);
-
-    if (str[size-1] != 0)
-    {
-        perror("copy_string_to_buffer: not string");
-        return;
-    }
-    if (size > BUFFER_SIZE)
-    {
-        perror("copy_string_to_buffer: increase BUFFER_SIZE");
-        return;
-    }
-
-    strcpy(buffer->buffer, str);
-    buffer->length = size;
+    buffer->length = length;
 }
 
 
@@ -163,6 +145,10 @@ int is_buffer_empty(buffer_t* buffer)
     return buffer->length == 0;
 }
 
+int is_have_string(buffer_t* buffer)
+{
+    return is_have_separator(buffer->buffer, buffer->length);
+}
 
 
 
@@ -200,20 +186,4 @@ static char* get_last_position_in_buffer(buffer_t* buffer)
 static void update_buffer_length(buffer_t* buffer, int length_change)
 {
     buffer->length += length_change;
-}
-
-int find_string(buffer_t* buffer, char string_separator)
-{
-    int end_string = -1;
-    int i = 0;
-    for (; i < buffer->length; i++)
-    {
-        if (buffer->buffer[i] == string_separator)
-        {
-            end_string = i;
-            break;
-        }
-    }
-
-    return end_string;
 }

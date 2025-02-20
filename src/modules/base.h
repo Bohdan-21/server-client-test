@@ -15,6 +15,9 @@ void* get_mem(size_t size);
 int is_have_separator(const char* str, int length);
 
 /*worked with "dirty" string, where separator is '\n' not '\0'*/
+int make_copy_string_to_string(char* dest, const char* src);
+
+/*worked with "dirty" string, where separator is '\n' not '\0'*/
 char* make_copy_string(const char* str);
 
 /*worked with "dirty" string, where separator is '\n' not '\0'*/

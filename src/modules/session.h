@@ -45,7 +45,7 @@ void update_session_current_dialog_id(session_t* session, int new_dialog_id);
 
 
 void try_change_session_state(session_t* session, int current_dialog_id, 
-                              const char* msg, char string_separator);
+                              const char* msg);
 
 
 #endif

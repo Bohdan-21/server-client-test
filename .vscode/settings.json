@@ -7,6 +7,7 @@
         "dialog_state.h": "c",
         "custom_io.h": "c",
         "dialog.h": "c",
-        "functional": "c"
+        "functional": "c",
+        "session.h": "c"
     }
 }
