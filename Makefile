@@ -26,15 +26,26 @@ $(BIN_DIR)/$(CLIENT_DIR):
 $(BIN_DIR)/$(SERVER_DIR)/daemon_server: $(SRC_DIR)/$(SERVER_DIR)/daemon_server.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
+$(BIN_DIR)/$(CLIENT_DIR)/client: $(SRC_DIR)/$(CLIENT_DIR)/client.c $(OBJMODULES)
+	$(CC) $(CFLAGS) $^ -o $@
+
 $(BIN_DIR)/test_custom_io: $(TEST_DIR)/test_custom_io.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
 
-test_custom_io: $(BIN_DIR)/test_custom_io
-
 daemon_server: mk_server_dir $(BIN_DIR)/$(SERVER_DIR)/daemon_server
 
+client: mk_client_dir $(BIN_DIR)/$(CLIENT_DIR)/client
+
+
+test_custom_io: $(BIN_DIR)/test_custom_io
+
+
+
 mk_server_dir: $(BIN_DIR)/$(SERVER_DIR)
+
+mk_client_dir: $(BIN_DIR)/$(CLIENT_DIR)
+
 
 
 clean:

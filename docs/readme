@@ -44,7 +44,7 @@
 - The maximum length of a single input line is **128 characters** (including the newline character).
 - Input exceeding this limit may be truncated or cause undefined behavior.
 - Clients should ensure that their responses do not exceed this limit.
-
+- The program uses 'dirty' strings that end with '\n'. If a valid C string is needed, it can be converted.
 
 
 

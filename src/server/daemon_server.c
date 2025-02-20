@@ -148,7 +148,7 @@ int main()
         
         /*event selection*/
 
-        result = pselect(max_d, &read_fds, &write_fds, NULL, &timeout, &oldmask);
+        result = pselect(max_d + 1, &read_fds, &write_fds, NULL, &timeout, &oldmask);
 
         /*event processing*/
 
@@ -311,6 +311,7 @@ static char* get_path_data_file(buffer_t* config_data)
     char* path_to_file;
 
     path_to_file = get_string(config_data, STRING_SEPARATOR);
+    path_to_file = make_c_string(path_to_file);
 
     if (!path_to_file)
     {
@@ -351,7 +352,10 @@ static void initialize_config(buffer_t* buffer, const char* path_to_file)
 
             create_node(dialog_type, dialog);
 
+            /*TODO: remove this*/
+            str = make_c_string(str, STRING_SEPARATOR);
             printf("%s\n", str);
+            /**/
 
             free(str);
         }

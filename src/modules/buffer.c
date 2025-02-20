@@ -124,8 +124,6 @@ char* get_string(buffer_t* buffer, char string_separator)
 
     memmove(dest, buffer->buffer, end_string + 1);
 
-    dest[end_string] = 0;
-
     move_left_n(buffer, end_string + 1);
 
     return dest;

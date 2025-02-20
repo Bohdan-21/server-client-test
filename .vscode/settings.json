@@ -6,6 +6,7 @@
         "buffer.h": "c",
         "dialog_state.h": "c",
         "custom_io.h": "c",
-        "dialog.h": "c"
+        "dialog.h": "c",
+        "functional": "c"
     }
 }
