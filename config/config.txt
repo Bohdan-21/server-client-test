@@ -1,1 +1,1 @@
-./config/dialog_2.txt
+./config/dialog.txt

@@ -8,6 +8,7 @@
 #include <sys/select.h>
 #include <time.h>
 #include <signal.h>
+#include <termios.h>
 
 #include "../modules/buffer.h"
 #include "../modules/custom_io.h"
@@ -66,6 +67,22 @@ static int handle_write(client_connection_t* client, fd_set* write_fds);
 
 static int handle_client(client_connection_t* client, fd_set *read_fds, fd_set *write_fds);
 
+/*void reset_terminal_mode(struct termios* term) {
+    tcsetattr(STDIN_FILENO, TCSANOW, term);
+}
+
+void set_raw_mode(struct termios* term) {
+    struct termios raw;
+    tcgetattr(STDIN_FILENO, term); // Сохраняем оригинальные настройки
+    atexit(reset_terminal_mode); // Гарантируем восстановление при выходе
+
+    raw = *term;
+    //raw.c_lflag &= ~(ECHO | ICANON | ISIG); // Выключаем эхо, канонический режим и сигналы
+    raw.c_cc[VMIN] = 1;  // Читаем по 1 символу
+    raw.c_cc[VTIME] = 0; // Без задержек
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+}*/
 
 
 int main()
@@ -77,6 +94,10 @@ int main()
     fd_set read_fds, write_fds;
     sigset_t mask, oldmask;
     client_connection_t* client_connection;
+    
+    /*struct termios term;*/
+
+    /*set_raw_mode(&term);*/
 
     client_connection = initialize_connection(&max_d);
 
@@ -110,6 +131,9 @@ int main()
 
     close_client_connection(client_connection);
     free_client_connection(client_connection);
+
+
+    /*reset_terminal_mode(&term);*/
 
     exit(EXIT_SUCCESS);
 /*
@@ -330,22 +354,20 @@ static int handle_event(client_connection_t* client, fd_set *read_fds, fd_set *w
 
     if (client->client_state == ready_receive_info_from_server ||
         client->client_state == ready_receive_info_from_client)/*read*/
-    {
+
         result = handle_read(client, read_fds);
 
-        if (result == -1 || result == 0)
-            return -1;
-        
-    }
+
     else /*if (client->client_state == ready_showing_info_for_client ||
              client->client_state == ready_send_info_to_server)*//*write*/
-    {
+    
         result = handle_write(client, write_fds);
-    }
 
-    result = handle_client(client, read_fds, write_fds);
+    change_client_state(client);
 
 
+    if (result == -1 || result == 0)
+        return -1;
 
     return 0;
 }
@@ -357,6 +379,7 @@ static int handle_read(client_connection_t* client, fd_set* read_fds)
     if (FD_ISSET(client->input_fd, read_fds))
     {
         result = read_from_fd(client->input_buffer, client->input_fd);
+        printf("rc i\n");
     }
     else if (FD_ISSET(client->socket_fd, read_fds))
     {
@@ -368,7 +391,18 @@ static int handle_read(client_connection_t* client, fd_set* read_fds)
 
 static int handle_write(client_connection_t* client, fd_set* write_fds)
 {
+    int result = -1;
 
+    if (FD_ISSET(client->output_fd, write_fds))
+    {
+        result = write_to_fd(client->output_fd, client->server_buffer);
+    }
+    else if (FD_ISSET(client->socket_fd, write_fds))
+    {
+        result = write_to_fd(client->socket_fd, client->input_buffer);
+    }
+    
+    return result;
 }
 
 

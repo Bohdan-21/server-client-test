@@ -37,3 +37,26 @@ void free_client_connection(client_connection_t* client_connection)
 
     free(client_connection);
 }
+
+void change_client_state(client_connection_t* client)
+{
+    switch(client->client_state)
+    {
+        case ready_receive_info_from_server:
+            if (is_have_string(client->server_buffer) != -1)
+                client->client_state = ready_showing_info_for_client;
+        break;
+        case ready_receive_info_from_client:
+            if (is_have_string(client->input_buffer) != -1)
+                client->client_state = ready_send_info_to_server;
+        break;
+        case ready_showing_info_for_client:
+            if (is_buffer_empty(client->server_buffer))
+                client->client_state = ready_receive_info_from_client;
+        break;
+        case ready_send_info_to_server:
+            if (is_buffer_empty(client->input_buffer))
+                client->client_state = ready_receive_info_from_server;
+        break;
+    }
+}

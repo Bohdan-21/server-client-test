@@ -20,6 +20,15 @@
         "group": { "kind": "build", "isDefault": true }
       },
       {
+        "label": "build_debug_client",
+        "type": "shell",
+        "command": "make",
+        "args": [
+          "client"
+        ],
+        "group": { "kind": "build", "isDefault": true }
+      },
+      {
         "label": "build_debug_test_custom_io",
         "type": "shell",
         "command": "make",

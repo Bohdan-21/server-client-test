@@ -173,9 +173,10 @@ int main()
                 
                 if (result_connection != -1)
                     max_d = result_connection;
+                result--;
             }
 
-            if (result > 1)
+            if (result > 0)
                 event_handler(&read_fds, &write_fds, listen_socket_fd);
         }
 
@@ -503,7 +504,7 @@ static void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket
                 handle_read_event(session);
         }
 
-        change_session_state(session);
+        change_session_state(session);//this is why client receive message broken pipe, socket close before client send last answer
         move_next(session_type);
     }
 }
@@ -604,6 +605,8 @@ static void remove_ended_session()
     int connection_fd;
     int current_dialog_id;
     session_t* session;
+    int* ids_for_close = get_mem(sizeof(int) * list_for_session->count);
+    int count_id_close = 0;
 
     reset_current(session_type);
 
@@ -615,11 +618,17 @@ static void remove_ended_session()
         {
             connection_fd = get_session_fd(session);
 
-            close_connection(connection_fd);
-            remove_session(connection_fd);
+            ids_for_close[count_id_close] = connection_fd;
+            count_id_close++;
         }
 
         move_next(session_type);
+    }
+
+    for (int i = 0; i < count_id_close; i++)
+    {
+        close_connection(ids_for_close[i]);
+        remove_session(ids_for_close[i]);
     }
 }
 

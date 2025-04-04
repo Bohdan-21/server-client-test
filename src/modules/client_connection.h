@@ -37,5 +37,7 @@ void close_client_connection(client_connection_t* client_connection);
 
 void free_client_connection(client_connection_t* client_connection);
 
+void change_client_state(client_connection_t* client);
+
 
 #endif
