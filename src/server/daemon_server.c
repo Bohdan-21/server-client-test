@@ -133,7 +133,7 @@ int main()
 #endif
 
     setup_signal(&mask, &oldmask);
-    initialize_lists();
+    initialize_list();
     load_config();
     initialize_listen_socket(&listen_socket_fd);
 
@@ -186,7 +186,7 @@ int main()
 
     /*TODO: stop without memmory leak*/
     /*-------------------------------*/
-    free_lists();
+    free_list();
     close_listen_socket(&listen_socket_fd);
     /*-------------------------------*/
 
