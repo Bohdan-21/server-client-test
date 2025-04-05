@@ -27,7 +27,7 @@ typedef struct
 
 session_t* create_session(int connected_fd, int current_dialog_id, const char* msg);
 
-void free_session(session_t* session);
+void free_session(void*);
 
 
 

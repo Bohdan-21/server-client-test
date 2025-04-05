@@ -19,8 +19,10 @@ session_t* create_session(int connected_fd, int current_dialog_id, const char* m
     return session;
 }
 
-void free_session(session_t* session)
+void free_session(void* data)
 {
+    session_t* session = (session_t*)data;
+
     free_buffer(session->buffer);
     free(session);
 }

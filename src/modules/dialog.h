@@ -15,7 +15,7 @@ typedef struct
 
 dialog_t* create_dialog_t(int dialog_id, const char* msg);
 
-void free_dialog_data(dialog_t* dialog);
+void free_dialog_data(void*);
 
 
 

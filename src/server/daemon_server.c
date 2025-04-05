@@ -18,6 +18,7 @@ SIGINT - stop server
 #include "../modules/dialog.h"
 #include "../modules/dialog_state.h"
 #include "../modules/custom_io.h"
+#include "../modules/session.h"
 
 #define NOTHING_DO 0
 #define RELOAD_CONFIG 1
@@ -52,7 +53,8 @@ enum
 
 
 volatile sig_atomic_t server_state = NOTHING_DO;
-
+list_t* session_list;
+list_t* dialog_list;
 
 
 void signal_handler(int);
@@ -128,12 +130,16 @@ int main()
     fd_set read_fds, write_fds;
     sigset_t mask, oldmask;
 
+    session_list = initialize_list();
+    dialog_list = initialize_list();
+
+
+
 #ifdef GET_PROCESS_ID_WHEN_START
     printf("%d\n", getpid());
 #endif
 
     setup_signal(&mask, &oldmask);
-    initialize_list();
     load_config();
     initialize_listen_socket(&listen_socket_fd);
 
@@ -186,7 +192,9 @@ int main()
 
     /*TODO: stop without memmory leak*/
     /*-------------------------------*/
-    free_list();
+    free_list(dialog_list, free_dialog_data);
+    free_list(session_list, free_session);
+
     close_listen_socket(&listen_socket_fd);
     /*-------------------------------*/
 
@@ -352,7 +360,7 @@ static void initialize_config(buffer_t* buffer, const char* path_to_file)
             dialog = create_dialog_t(dialog_id, str);
             dialog_id++;
 
-            create_node(dialog_type, dialog);
+            create_node(dialog_list, dialog);
 
             /*TODO: remove this*/
             str = make_c_string(str);
@@ -375,6 +383,7 @@ void set_timeout(struct timespec* timeout)
 
 void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
 {
+    node_t* node;
     session_t* session;
 
     FD_ZERO(read_fds);
@@ -382,16 +391,17 @@ void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
 
     FD_SET(listen_socket_fd, read_fds);
 
-    reset_current(session_type);
+    node = session_list->pointer_in_head;
 
-    while((session = (session_t*)(get_current(session_type))))
+    for (; node; node = node->next)
     {
-        if (session->state == ready_send_info)
-            FD_SET(session->socket_fd, write_fds);
-        else if (session->state == ready_receive_info)
-            FD_SET(session->socket_fd, read_fds);
-
-        move_next(session_type);
+        if ((session = (session_t*)node->data))
+        {
+            if (session->state == ready_send_info)
+                FD_SET(session->socket_fd, write_fds);
+            else if (session->state == ready_receive_info)
+                FD_SET(session->socket_fd, read_fds);
+        }
     }
 }
 
@@ -472,7 +482,7 @@ static int initialize_new_connection_session(int connection_fd)
     
     session = create_session(connection_fd, current_dialog_id, msg);
 
-    create_node(session_type, (void*)session);
+    create_node(session_list, (void*)session);
 
     return 0;
 }
@@ -483,29 +493,32 @@ static int initialize_new_connection_session(int connection_fd)
 static void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
 {
     int session_fd;
+    node_t* node;
     session_t* session;
     session_state_t state;
 
-    reset_current(session_type);
+    node = session_list->pointer_in_head;
 
-    while((session = (session_t*)get_current(session_type)))
+    for (; node; node = node->next)
     {
-        session_fd = get_session_fd(session);
-        state = get_session_state(session);
-
-        if (state == ready_send_info)
+        if ((session = (session_t*)node->data))
         {
-            if (FD_ISSET(session_fd, write_fds))
-                handle_write_event(session);
-        }
-        else if (state == ready_receive_info)
-        {
-            if (FD_ISSET(session_fd, read_fds))
-                handle_read_event(session);
-        }
+            session_fd = get_session_fd(session);
+            state = get_session_state(session);
 
-        change_session_state(session);//this is why client receive message broken pipe, socket close before client send last answer
-        move_next(session_type);
+            if (state == ready_send_info)
+            {
+                if (FD_ISSET(session_fd, write_fds))
+                    handle_write_event(session);
+            }
+            else if (state == ready_receive_info)
+            {
+                if (FD_ISSET(session_fd, read_fds))
+                    handle_read_event(session);
+            }
+
+            change_session_state(session);//this is why client receive message broken pipe, socket close before client send last answer
+        }
     }
 }
 
@@ -572,21 +585,26 @@ static void change_session_state(session_t* session)
 
 static const dialog_t* get_dialog(dialog_state_t current_dialog_id, int need_next_dialog)
 {
+    node_t* node;
     dialog_t* dialog;
 
-    reset_current(dialog_type);
+    node = dialog_list->pointer_in_head;
 
-    while ((dialog = (dialog_t*)get_current(dialog_type)))
+    for (; node; node = node->next)
     {
-        if (dialog->dialog_id == current_dialog_id)
+        if ((dialog = (dialog_t*)node->data))
         {
-            if (need_next_dialog == true)
-                move_next(dialog_type);
-            return (dialog_t*)get_current(dialog_type);
-        }
-        move_next(dialog_type);
-    }
+            if (dialog->dialog_id == current_dialog_id)
+            {
+                if (need_next_dialog == true)
+                    node = node->next;
 
+                if (!node)
+                    return NULL;                
+                return (dialog_t*)node->data;
+            }
+        }
+    }
     return NULL;
 }
 
@@ -604,32 +622,36 @@ static void remove_ended_session()
 {
     int connection_fd;
     int current_dialog_id;
+    node_t* node;
     session_t* session;
-    int* ids_for_close = get_mem(sizeof(int) * list_for_session->count);
+    node_t** ids_for_close = get_mem(sizeof(node_t) * session_list->count);
     int count_id_close = 0;
 
-    reset_current(session_type);
+    node = session_list->pointer_in_head;
 
-    while((session = (session_t*)get_current(session_type)))
+    for (; node; node = node->next)
     {
-        current_dialog_id = get_session_current_dialog_id(session);
-
-        if (current_dialog_id == ERROR_DIALOG_ID)
+        if ((session = (session_t*)node->data))
         {
-            connection_fd = get_session_fd(session);
+            current_dialog_id = get_session_current_dialog_id(session);
 
-            ids_for_close[count_id_close] = connection_fd;
-            count_id_close++;
+            if (current_dialog_id == ERROR_DIALOG_ID)
+            {
+                connection_fd = get_session_fd(session);
+
+                close_connection(connection_fd);
+
+                ids_for_close[count_id_close] = node;
+                count_id_close++;
+            }
         }
-
-        move_next(session_type);
     }
-
     for (int i = 0; i < count_id_close; i++)
     {
-        close_connection(ids_for_close[i]);
-        remove_session(ids_for_close[i]);
+        remove_node(session_list, ids_for_close[i], free_session);
     }
+
+    free(ids_for_close);
 }
 
 static void close_connection(int connected_fd)

@@ -12,8 +12,10 @@ dialog_t* create_dialog_t(int dialog_id, const char* str)
     return new_dialog;
 }
 
-void free_dialog_data(dialog_t* dialog)
+void free_dialog_data(void* data)
 {
+    dialog_t* dialog = (dialog_t*)data;
+
     free((void*)dialog->msg);
     free(dialog);
 }
