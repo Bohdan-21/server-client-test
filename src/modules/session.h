@@ -31,15 +31,6 @@ void free_session(void*);
 
 
 
-int get_session_fd(session_t* session);
-
-int get_session_current_dialog_id(session_t* session);
-
-session_state_t get_session_state(session_t* session);
-
-buffer_t* get_session_buffer(session_t* session);
-
-
 void update_session_current_dialog_id(session_t* session, int new_dialog_id);
 
 

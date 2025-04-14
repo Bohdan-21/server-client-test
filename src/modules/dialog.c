@@ -2,7 +2,7 @@
 
 
 
-dialog_t* create_dialog_t(int dialog_id, const char* str)
+dialog_t* create_dialog(int dialog_id, const char* str)
 {
     dialog_t* new_dialog = get_mem(sizeof(dialog_t));
 
@@ -12,7 +12,7 @@ dialog_t* create_dialog_t(int dialog_id, const char* str)
     return new_dialog;
 }
 
-void free_dialog_data(void* data)
+void free_dialog(void* data)
 {
     dialog_t* dialog = (dialog_t*)data;
 

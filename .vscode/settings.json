@@ -8,6 +8,8 @@
         "custom_io.h": "c",
         "dialog.h": "c",
         "functional": "c",
-        "session.h": "c"
+        "session.h": "c",
+        "list.h": "c",
+        "base.h": "c"
     }
 }
