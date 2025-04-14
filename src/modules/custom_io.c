@@ -7,7 +7,7 @@ int read_from_fd(buffer_t* destination, int source)
     int free_space;
     char* pointer;
 
-    free_space = get_count_free_space_buffer(destination);
+    free_space = get_buffer_free_space(destination);
     pointer = get_buffer_end_pointer(destination);
 
     if (!free_space)
@@ -25,7 +25,7 @@ int read_from_fd(buffer_t* destination, int source)
         /*exit(EXIT_FAILURE);*/
         return result_read;
     }
-    update_buffer_content_length(destination, result_read);
+    /*update_buffer_content_length(destination, result_read);*/destination->size+=result_read;
 
     return result_read;
 }
@@ -48,7 +48,7 @@ int write_to_fd(int destination, buffer_t* source)
         return result_write;
     }
 
-    removal_content_left_n_buffer(source, result_write);
+    /*removal_content_left_n_buffer(source, result_write);*/move_content_left(source, result_write);
 
     return result_write;
 }

@@ -375,7 +375,7 @@ static char* get_path_data_file(buffer_t* config_data)
         exit(EXIT_FAILURE);
     }
 
-    path_to_file = make_c_string(path_to_file);
+    path_to_file = make_c_string_old(path_to_file);
 
     return path_to_file;
 }
@@ -412,7 +412,7 @@ static void initialize_config(buffer_t* buffer, const char* path_to_file)
             create_node(dialog_list, dialog);
 
             /*TODO: remove this*/
-            str = make_c_string(str);
+            str = make_c_string_old(str);
             printf("%s\n", str);
             /**/
             free(str);

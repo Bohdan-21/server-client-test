@@ -42,6 +42,10 @@ int is_buffer_empty(buffer_t* buffer);
 int find(buffer_t* buffer, char separator);
 
 
+
+void move_content_left(buffer_t* buffer, int count_move);
+
+
 #endif
 
 

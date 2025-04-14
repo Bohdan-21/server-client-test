@@ -1,7 +1,8 @@
 #include <fcntl.h>
 #include <stdlib.h>
 
-#include "buffer.h"
+#include "../src/modules/buffer.h"
+#include "../src/modules/base.h"
 
 void read_test();
 
@@ -14,16 +15,15 @@ void open_config_file();
 int main()
 {
     read_test();
-    write_test();
-    get_string_NULL();
+    /*get_string_NULL();
     open_config_file();
-
+*/
     return 0;
 }
 
 void read_test()
 {
-    int fd = open("./config/dialog.txt", O_RDONLY);
+    int fd = open("../config/dialog.txt", O_RDONLY);
     buffer_t* buffer;
     char* str;
 
@@ -35,41 +35,51 @@ void read_test()
 
     buffer = create_buffer();
 
-    read_to_buffer_from_fd(buffer, fd);
+    int free_space = get_buffer_free_space(buffer);
 
-    str = get_string(buffer, '\n');
+    buffer->size += read(fd, buffer->ptr, free_space);
+
+    int position = find(buffer, '\n');
+
+    str = make_copy_string(buffer->ptr, position);
 
     printf("%s\n", str);
+
+    move_content_left(buffer, position);
 
     free(str);
 
 
-    str = get_string(buffer, '\n');
+
+
+    position = find(buffer, '\n');
+
+    str = make_copy_string(buffer->ptr, position);
 
     printf("%s\n", str);
+
+    move_content_left(buffer, position);
 
     free(str);
 
 
-    str = get_string(buffer, '\n');
 
-    printf("%s\n", str);
-    
-    free(str);
+    position = find(buffer, '\n');
 
-
-    str = get_string(buffer, '\n');
-
-    free_buffer(buffer);
+    str = make_copy_string(buffer->ptr, position);
 
     printf("%s\n", str);
 
+    move_content_left(buffer, position);
+
     free(str);
+
+
 
 
     close(fd);
 }
-
+/*
 void write_test()
 {
     int write_fd = open("./test/write_test", O_CREAT | O_WRONLY, 0644);
@@ -146,4 +156,4 @@ void open_config_file()
     free_buffer(buffer);
 
     close(re_write_fd);
-}
+}*/

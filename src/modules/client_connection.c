@@ -43,11 +43,11 @@ void change_client_state(client_connection_t* client)
     switch(client->client_state)
     {
         case ready_receive_info_from_server:
-            if (is_have_string(client->server_buffer) != -1)
+            /*if (is_have_string(client->server_buffer) != -1)*//*TODO:*/
                 client->client_state = ready_showing_info_for_client;
         break;
         case ready_receive_info_from_client:
-            if (is_have_string(client->input_buffer) != -1)
+            /*if (is_have_string(client->input_buffer) != -1)*/
                 client->client_state = ready_send_info_to_server;
         break;
         case ready_showing_info_for_client:

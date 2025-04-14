@@ -32,6 +32,9 @@ $(BIN_DIR)/$(CLIENT_DIR)/client: $(SRC_DIR)/$(CLIENT_DIR)/client.c $(OBJMODULES)
 $(BIN_DIR)/test_custom_io: $(TEST_DIR)/test_custom_io.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
+$(BIN_DIR)/test_buffer: $(TEST_DIR)/buffer_test.c $(OBJMODULES)
+	$(CC) $(CFLAGS) $^ -o $@
+
 
 daemon_server: mk_server_dir $(BIN_DIR)/$(SERVER_DIR)/daemon_server
 
@@ -39,6 +42,8 @@ client: mk_client_dir $(BIN_DIR)/$(CLIENT_DIR)/client
 
 
 test_custom_io: $(BIN_DIR)/test_custom_io
+
+test_buffer: $(BIN_DIR)/test_buffer
 
 
 

@@ -1,7 +1,5 @@
 #include "base.h"
 
-static int get_separator_position(const char* str);
-
 void* get_mem(size_t size)
 {
     void* new_allocated_mem;
@@ -17,7 +15,34 @@ void* get_mem(size_t size)
     return new_allocated_mem;
 }
 
-int is_have_separator(const char* str, int length)
+
+
+char* make_copy_string(const char* str, int length)
+{
+    char* result = get_mem(length + 1);
+
+    memmove(result, str, length + 1);
+
+    return result;
+}
+
+char* make_c_string(char* str, int modify_position)
+{
+    str[modify_position] = '\0';
+
+    return str;
+}
+
+
+
+
+
+
+
+static int get_separator_position(const char* str);
+
+
+static int is_have_separator_old(const char* str, int length)
 {
     int i = 0;
     int separator_position = -1;
@@ -33,7 +58,7 @@ int is_have_separator(const char* str, int length)
     return separator_position;
 }
 
-char* make_copy_string(const char* str)
+static char* make_copy_string_old(const char* str)
 {
     size_t size;
     char *new_str;
@@ -47,7 +72,7 @@ char* make_copy_string(const char* str)
     return new_str;
 }
 
-int make_copy_string_to_string(char* dest, const char* src)
+static int make_copy_string_to_string_old(char* dest, const char* src)
 {
     int length = get_separator_position(src) + 1;
 
@@ -57,7 +82,7 @@ int make_copy_string_to_string(char* dest, const char* src)
 }
 
 
-char* make_c_string(char* str)
+static char* make_c_string_old(char* str)
 {
     int i;
 

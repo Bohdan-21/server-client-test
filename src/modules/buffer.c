@@ -71,7 +71,37 @@ int find(buffer_t* buffer, char separator)
 
 
 
+void move_content_left(buffer_t* buffer, int offset)
+{
+    int n;
+    char* dest;
 
+    if (offset <= 0)
+        return;    
+
+    n = buffer->size - offset;
+    dest = get_mem(BASE_SIZE);
+
+    memmove(dest, buffer->ptr + offset, n);
+
+    free(buffer->ptr);
+
+    buffer->ptr = dest;
+    buffer->size = n;
+
+    /*int i = 0;
+    int j = offset;
+
+    for (;i < buffer->size; i++, j++)
+    {
+        if (j >= buffer->size)
+            break;
+        else
+            buffer->ptr[i] = buffer->ptr[j];
+    }
+
+    buffer->size -= offset;*/
+}
 
 
 
@@ -241,12 +271,12 @@ int find(buffer_t* buffer, char separator)
 //     char* dest;
 //     int position;
 
-//     position = is_have_separator(buffer->buffer, buffer->length);
+//     position = is_have_separator_old(buffer->buffer, buffer->length);
 
 //     if (position == -1)
 //         return NULL;
 
-//     dest = make_copy_string(buffer->buffer);
+//     dest = make_copy_string_old(buffer->buffer);
 
 //     move_left_n(buffer, position + 1);
 
@@ -257,7 +287,7 @@ int find(buffer_t* buffer, char separator)
 // {   
 //     int length;
 
-//     length = make_copy_string_to_string(buffer->buffer, str);
+//     length = make_copy_string_to_string_old(buffer->buffer, str);
 
 //     buffer->length = length;
 // }
@@ -275,7 +305,7 @@ int find(buffer_t* buffer, char separator)
 
 // int is_have_string(buffer_t* buffer)
 // {
-//     return is_have_separator(buffer->buffer, buffer->length);
+//     return is_have_separator_old(buffer->buffer, buffer->length);
 // }
 
 

@@ -5,7 +5,7 @@
         "name": "Debug buffer_test",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/buffer_test",
+        "program": "${workspaceFolder}/bin/test_buffer",
         "args": [],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",

@@ -113,12 +113,12 @@ char* get_string(buffer_t* buffer)
     char* dest;
     int position;
 
-    position = is_have_separator(buffer->buffer, buffer->length);
+    position = is_have_separator_old(buffer->buffer, buffer->length);
 
     if (position == -1)
         return NULL;
 
-    dest = make_copy_string(buffer->buffer);
+    dest = make_copy_string_old(buffer->buffer);
 
     move_left_n(buffer, position + 1);
 
@@ -129,7 +129,7 @@ void copy_string_to_buffer(buffer_t* buffer, const char* str)
 {   
     int length;
 
-    length = make_copy_string_to_string(buffer->buffer, str);
+    length = make_copy_string_to_string_old(buffer->buffer, str);
 
     buffer->length = length;
 }
@@ -147,7 +147,7 @@ int is_buffer_empty(buffer_t* buffer)
 
 int is_have_string(buffer_t* buffer)
 {
-    return is_have_separator(buffer->buffer, buffer->length);
+    return is_have_separator_old(buffer->buffer, buffer->length);
 }
 
 
