@@ -138,6 +138,152 @@ static void close_connection(int connected_fd);
 
 
 
+
+
+static void start_server(server_context_t* server_context)
+{
+    server_context = create_server_context();
+
+    load_config();
+}
+
+static void stop_server(server_context_t* server_context)
+{
+    /*destroy data*/
+
+
+
+    free_server_context(server_context); /*to this moment all data must be destroy*/
+}
+
+
+
+
+
+
+/*TODO:this need check*/
+static void load_config()
+{
+    buffer_t* buffer;
+    char* path_to_file;
+
+    buffer = create_buffer();
+
+    load_config_file(buffer);
+
+    replace_symbol(buffer->ptr, buffer->size, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
+    
+    path_to_file = get_path_data_file(buffer);
+
+    clear_buffer(buffer);
+
+    initialize_config(buffer, path_to_file);
+
+    free(path_to_file);
+    free_buffer(buffer);
+}
+
+static void load_config_file(buffer_t* buffer)
+{
+    int config_file_fd;
+
+    config_file_fd = open(CONFIG_PATH, O_RDONLY);
+
+    if (config_file_fd == -1)
+    {
+        perror("load_config_file");
+        exit(EXIT_FAILURE);
+    }
+
+    read_from_fd(buffer, config_file_fd);
+    close(config_file_fd);
+}
+
+static char* get_string(buffer_t* buffer);
+
+
+static char* get_string(buffer_t* buffer)
+{
+    char* result;
+    int position;
+
+    position = find(buffer, C_STRING_SEPARATOR);
+
+    if (position == -1)
+        return NULL;
+
+    position += 1;/*including*/
+
+    result = make_copy_string(buffer->ptr, position);
+
+    move_content_left(buffer, position);
+
+    return result;
+}
+
+static char* get_path_data_file(buffer_t* buffer)
+{
+    char* path_to_file;
+
+    path_to_file = get_string(buffer);
+    
+    if (!path_to_file)
+    {
+        perror("get_path_data_file");
+        exit(EXIT_FAILURE);
+    }
+
+    return path_to_file;
+}
+
+static void initialize_config(buffer_t* buffer, const char* path_to_file)
+{
+    int dialog_file_fd;
+    int dialog_id = DEFAULT_DIALOG_ID;
+    int result_read;
+    char* str;
+    dialog_t* dialog;
+
+    dialog_file_fd = open(path_to_file, O_RDONLY);
+
+    if (dialog_file_fd == -1)
+    {
+        perror("initialize_config open file");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((result_read = read_from_fd(buffer, dialog_file_fd)))
+    {
+        replace_symbol(buffer->ptr, buffer->size, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
+
+        if (result_read == -1)
+        {
+            perror("initialize_config: read from fd");
+            exit(EXIT_FAILURE);/*cant initialize config*/
+        }
+
+        while ((str = get_string(buffer)))/*TODO*/
+        {
+            dialog = create_dialog(dialog_id, str);
+            dialog_id++;
+
+            create_node(dialog_list, dialog);
+
+            /*TODO: remove this*/
+            printf("%s\n", str);
+            /**/
+        }
+    }
+
+    close(dialog_file_fd);
+}
+
+
+
+
+
+
+
 int main()
 {
     int listen_socket_fd;
@@ -147,10 +293,10 @@ int main()
     struct timespec timeout;
     fd_set read_fds, write_fds;
     sigset_t mask, oldmask;
-    server_context_t server_context;
+    server_context_t* server_context = NULL;
 
-    session_list = initialize_list();
-    dialog_list = initialize_list();
+    session_list = create_list();
+    dialog_list = create_list();
 
 
 
@@ -163,11 +309,11 @@ int main()
 
     
     load_config();
+    /*start_server(server_context);*/
     initialize_listen_socket(&listen_socket_fd);
 
     max_d = listen_socket_fd;
     
-    start_server(&server_context);
 
     for (;;)
     {
@@ -185,13 +331,13 @@ int main()
         {
             if (server_state == STOP_SERVER)
             {
-                stop_server(&server_context);
+                /*stop_server(server_context);*/
                 break;
             }
             else if (server_state == RELOAD_CONFIG)
             {
-                stop_server(&server_context);
-                start_server(&server_context);
+                stop_server(server_context);
+                start_server(server_context);
                 server_state = NOTHING_DO;
             }
         }
@@ -265,15 +411,15 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 
 
 
-static void start_server(server_context_t* server_context)
-{
 
-}
 
-static void stop_server(server_context_t* server_context)
-{
 
-}
+
+
+
+
+
+
 
 
 
@@ -325,102 +471,6 @@ void close_listen_socket(int* listen_socked_fd)
 
 
 
-
-
-
-static void load_config()
-{
-    buffer_t* buffer;
-    char* path_to_file;
-
-    buffer = create_buffer();
-
-    load_config_file(buffer);
-    
-    path_to_file = get_path_data_file(buffer);
-
-    clear_buffer(buffer);
-
-    initialize_config(buffer, path_to_file);
-
-    free(path_to_file);
-    free_buffer(buffer);
-}
-
-static void load_config_file(buffer_t* config_data)
-{
-    int config_file_fd;
-
-    config_file_fd = open(CONFIG_PATH, O_RDONLY);
-
-    if (config_file_fd == -1)
-    {
-        perror("load_config_file");
-        exit(EXIT_FAILURE);
-    }
-
-    read_from_fd(config_data, config_file_fd);
-    close(config_file_fd);
-}
-
-static char* get_path_data_file(buffer_t* config_data)
-{
-    char* path_to_file;
-
-    path_to_file = get_string(config_data);
-    
-    if (!path_to_file)
-    {
-        perror("get_path_data_file");
-        exit(EXIT_FAILURE);
-    }
-
-    path_to_file = make_c_string_old(path_to_file);
-
-    return path_to_file;
-}
-
-static void initialize_config(buffer_t* buffer, const char* path_to_file)
-{
-    int dialog_file_fd;
-    int dialog_id = DEFAULT_DIALOG_ID;
-    int result_read;
-    char* str;
-    dialog_t* dialog;
-
-    dialog_file_fd = open(path_to_file, O_RDONLY);
-
-    if (dialog_file_fd == -1)
-    {
-        perror("initialize_config open file");
-        exit(EXIT_FAILURE);
-    }
-
-    while ((result_read = read_from_fd(buffer, dialog_file_fd)))
-    {
-        if (result_read == -1)
-        {
-            perror("initialize_config: read from fd");
-            exit(EXIT_FAILURE);/*cant initialize config*/
-        }
-
-        while ((str = get_string(buffer)))
-        {
-            dialog = create_dialog(dialog_id, str);
-            dialog_id++;
-
-            create_node(dialog_list, dialog);
-
-            /*TODO: remove this*/
-            str = make_c_string_old(str);
-            printf("%s\n", str);
-            /**/
-            free(str);
-        }
-    }
-
-    close(dialog_file_fd);
-}
 
 
 
@@ -552,8 +602,8 @@ static void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket
     {
         if ((session = (session_t*)node->data))
         {
-            session_fd = get_session_fd(session);
-            state = get_session_state(session);
+            session_fd = session->socket_fd;
+            state = session->state;
 
             if (state == ready_send_info)
             {
@@ -577,8 +627,8 @@ static void handle_write_event(session_t* session)
     int session_fd;
     buffer_t* buffer;
 
-    session_fd = get_session_fd(session);
-    buffer = get_session_buffer(session);
+    session_fd = session->socket_fd;
+    buffer = session->buffer;
 
     result_operation = write_to_fd(session_fd, buffer);
 
@@ -595,8 +645,8 @@ static void handle_read_event(session_t* session)
     int session_fd;
     buffer_t* buffer;
 
-    session_fd = get_session_fd(session);
-    buffer = get_session_buffer(session);
+    session_fd = session->socket_fd;
+    buffer = session->buffer;
 
     result_operation = read_from_fd(buffer, session_fd);
 
@@ -617,7 +667,7 @@ static void change_session_state(session_t* session)
     const dialog_t* dialog;
     int current_dialog_id;
 
-    current_dialog_id = get_session_current_dialog_id(session);
+    current_dialog_id = session->current_dialog_id;
     dialog = get_dialog(current_dialog_id, true);
     
     if (!dialog)
@@ -684,11 +734,11 @@ static void remove_ended_session()
     {
         if ((session = (session_t*)node->data))
         {
-            current_dialog_id = get_session_current_dialog_id(session);
+            current_dialog_id = session->current_dialog_id;
 
             if (current_dialog_id == ERROR_DIALOG_ID)
             {
-                connection_fd = get_session_fd(session);
+                connection_fd = session->socket_fd;
 
                 close_connection(connection_fd);
 

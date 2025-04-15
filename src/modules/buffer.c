@@ -6,7 +6,7 @@ buffer_t* create_buffer()
     buffer_t* buffer = get_mem(sizeof(buffer_t));
 
     buffer->ptr = get_mem(BASE_SIZE);
-    buffer->size = BASE_SIZE;
+    buffer->size = 0;
 
     return buffer;
 }

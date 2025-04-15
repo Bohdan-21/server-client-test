@@ -38,7 +38,7 @@ size_t get_buffer_content_length(buffer_t* buffer);
 void clear_buffer(buffer_t* buffer);
 
 int is_buffer_empty(buffer_t* buffer);
-
+/*return position where find separator*/
 int find(buffer_t* buffer, char separator);
 
 

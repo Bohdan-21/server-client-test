@@ -2,13 +2,13 @@
 
 
 
-dialog_t* create_dialog(int dialog_id, const char* str)
+dialog_t* create_dialog(int dialog_id, char* str)
 {
     dialog_t* new_dialog = get_mem(sizeof(dialog_t));
 
     new_dialog->dialog_id = dialog_id;
-    new_dialog->msg = make_copy_string_old(str);
-
+    new_dialog->msg = str;
+    
     return new_dialog;
 }
 

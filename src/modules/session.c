@@ -57,4 +57,7 @@ static void update_session_data(session_t* session, int current_dialog_id, const
     session->current_dialog_id = current_dialog_id;
     session->state = ready_send_info;
     /*copy_string_to_buffer(session->buffer, msg);*//*TODO:*/
+    int length = strlen(msg) + 1;
+    memmove(session->buffer->ptr, msg, length);
+    session->buffer->size = length;
 }

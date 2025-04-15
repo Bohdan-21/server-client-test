@@ -19,9 +19,9 @@ void* get_mem(size_t size)
 
 char* make_copy_string(const char* str, int length)
 {
-    char* result = get_mem(length + 1);
+    char* result = get_mem(length);
 
-    memmove(result, str, length + 1);
+    memmove(result, str, length);
 
     return result;
 }
@@ -33,6 +33,14 @@ char* make_c_string(char* str, int modify_position)
     return str;
 }
 
+void replace_symbol(char* str, int length, char pattern, char replace)
+{
+    for (int i = 0;i < length;i++)
+    {
+        if (str[i] == pattern)
+            str[i] = replace;
+    }
+}
 
 
 
@@ -49,7 +57,7 @@ static int is_have_separator_old(const char* str, int length)
 
     for (; i < length; i++)
     {
-        if (str[i] == STRING_SEPARATOR)
+        if (str[i] == DIRTY_STRING_SEPARATOR)
         {
             separator_position = i;
             break;
@@ -98,7 +106,7 @@ static int get_separator_position(const char* str)
 {
     int i = 0;
 
-    while(str[i] != STRING_SEPARATOR)
+    while(str[i] != DIRTY_STRING_SEPARATOR)
         i++;
     
     return i;

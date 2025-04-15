@@ -376,10 +376,11 @@ static int handle_read(client_connection_t* client, fd_set* read_fds)
 {
     int result = -1;
 
-    if (FD_ISSET(client->input_fd, read_fds))
+    if (FD_ISSET(client->input_fd, read_fds))/*input data from terminal*/
     {
         result = read_from_fd(client->input_buffer, client->input_fd);
         printf("rc i\n");
+        replace_symbol(client->input_buffer->ptr, client->input_buffer->size, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
     }
     else if (FD_ISSET(client->socket_fd, read_fds))
     {
@@ -396,6 +397,7 @@ static int handle_write(client_connection_t* client, fd_set* write_fds)
     if (FD_ISSET(client->output_fd, write_fds))
     {
         result = write_to_fd(client->output_fd, client->server_buffer);
+        replace_symbol(client->server_buffer->ptr, client->server_buffer->size, C_STRING_SEPARATOR, DIRTY_STRING_SEPARATOR);
     }
     else if (FD_ISSET(client->socket_fd, write_fds))
     {

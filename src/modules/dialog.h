@@ -13,7 +13,7 @@ typedef struct
 
 
 
-dialog_t* create_dialog(int dialog_id, const char* msg);
+dialog_t* create_dialog(int dialog_id, char* msg);
 
 void free_dialog(void*);
 

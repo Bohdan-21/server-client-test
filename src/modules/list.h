@@ -28,7 +28,7 @@ struct node
 
 
 
-list_t* initialize_list();
+list_t* create_list();
 
 void free_list(list_t*, destroy_function_t);
 

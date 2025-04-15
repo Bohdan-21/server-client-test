@@ -8,7 +8,7 @@ static node_t** get_last(node_t**);
 
 
 
-list_t* initialize_list()
+list_t* create_list()
 {
     list_t* list = get_mem(sizeof(list_t));
 
