@@ -34,9 +34,9 @@ SIGINT - stop server
 #define ERROR_DIALOG_ID -1
 
 #define SOCKET_PATH "./socket_file"
-#define CONFIG_PATH "./config/config.txt"
+#define CONFIG_PATH "./config/dialog.txt"
 
-
+#define DEBUG
 
 
 #define GET_PROCESS_ID_WHEN_START
@@ -56,9 +56,9 @@ enum
 
 
 volatile sig_atomic_t server_state = NOTHING_DO;
-list_t* session_list;
+/*list_t* session_list;
 list_t* dialog_list;
-
+*/
 
 void signal_handler(int);
 
@@ -70,7 +70,7 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask);
 
 
 
-static void start_server(server_context_t*);
+static int start_server(server_context_t**);
 
 static void stop_server(server_context_t*);
 
@@ -79,57 +79,53 @@ static void stop_server(server_context_t*);
 
 
 
-void initialize_listen_socket(int*);
+static int initialize_listen_socket(server_context_t* server_context);
 
-void close_listen_socket(int*);
-
-
+void close_listen_socket(int);
 
 
 
 
-static void load_config();
-
-static void load_config_file(buffer_t* config_data);
-
-static char* get_path_data_file(buffer_t* config_data);
-
-static void initialize_config(buffer_t* config_data, const char* path_to_file);
 
 
+static int load_config(server_context_t* server_context);
 
-void set_timeout(struct timespec*);
+static int initialize_config(server_context_t* server_context, int file_fd);
 
-void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd);
+static char* get_string(buffer_t* buffer);
 
 
 
-static int accept_connection(int listen_socket_fd);
+void setup_timeout(server_context_t* server_context);
 
-static int try_accept_connection(int listen_socket_fd);
+void prepare_fd_sets(server_context_t* server_context);
+
+
+
+static void accept_connection(server_context_t* server_context);
 
 static int try_set_nonblock_mode_for_socket(int connection_fd);
 
-static int initialize_new_connection_session(int connection_fd);
+static void create_connection_session(server_context_t* server_context, int connection_fd);
 
 
 
-static void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd);
+static void event_handler(server_context_t* server_context);
 
 static void handle_write_event(session_t* session);
 
 static void handle_read_event(session_t* session);
 
-static void change_session_state(session_t* session);
+static void change_session_state(list_t* dialogs, session_t* session);
 
-static const dialog_t* get_dialog(dialog_state_t current_dialog_id, int need_next_dialog);
+static const dialog_t* get_dialog(list_t* dialogs, int dialog_id);
 
 
 
 static void prepare_session_for_close(session_t* session);
 
 
-static void remove_ended_session();
+static void remove_ended_session(list_t* sessions);
 
 static void close_connection(int connected_fd);
 
@@ -140,68 +136,84 @@ static void close_connection(int connected_fd);
 
 
 
-static void start_server(server_context_t* server_context)
-{
-    server_context = create_server_context();
 
-    load_config();
+
+
+
+static int start_server(server_context_t** server_context)
+{
+    *server_context = create_server_context();
+
+    if (load_config(*server_context) == -1)
+        return -1;
+
+#ifdef DEBUG
+    printf("Config loaded\n");
+#endif
+
+    if (initialize_listen_socket(*server_context) == -1)
+        return -1;
+
+#ifdef DEBUG
+    printf("Socket initialized\n");
+#endif
+
+    (*server_context)->max_d = (*server_context)->listen_socket_fd;
+
+    return 0;
 }
 
-static void stop_server(server_context_t* server_context)
+/*TODO:this need check|return 0 or -1*/
+static int load_config(server_context_t* server_context)
 {
-    /*destroy data*/
-
-
-
-    free_server_context(server_context); /*to this moment all data must be destroy*/
-}
-
-
-
-
-
-
-/*TODO:this need check*/
-static void load_config()
-{
-    buffer_t* buffer;
-    char* path_to_file;
-
-    buffer = create_buffer();
-
-    load_config_file(buffer);
-
-    replace_symbol(buffer->ptr, buffer->size, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
-    
-    path_to_file = get_path_data_file(buffer);
-
-    clear_buffer(buffer);
-
-    initialize_config(buffer, path_to_file);
-
-    free(path_to_file);
-    free_buffer(buffer);
-}
-
-static void load_config_file(buffer_t* buffer)
-{
-    int config_file_fd;
-
-    config_file_fd = open(CONFIG_PATH, O_RDONLY);
+    int result;
+    int config_file_fd = open(CONFIG_PATH, O_RDONLY);
 
     if (config_file_fd == -1)
-    {
-        perror("load_config_file");
-        exit(EXIT_FAILURE);
-    }
+        return -1;
 
-    read_from_fd(buffer, config_file_fd);
+    result = initialize_config(server_context, config_file_fd);
+
     close(config_file_fd);
+
+    return result;
 }
+/*return 0 or -1*/
+static int initialize_config(server_context_t* server_context, int file_fd)
+{
+    int result_read;
+    int dialog_id = DEFAULT_DIALOG_ID;
+    
+    char* str;
+    dialog_t* dialog;
+    buffer_t* buffer = create_buffer();
 
-static char* get_string(buffer_t* buffer);
+    while((result_read = read_from_fd(buffer, file_fd)))
+    {
+        if (result_read == -1)
+            break;
 
+        replace_symbol(buffer->ptr, buffer->size, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
 
+        while((str = get_string(buffer)))
+        {
+            dialog = create_dialog(dialog_id, str);/*maybe need make copy for dialog?*/
+
+            dialog_id++;
+
+            create_node(server_context->dialogs, dialog);
+
+#ifdef DEBUG
+            printf("%s\n", str);
+#endif
+        }
+    }
+    
+    free_buffer(buffer);
+
+    return result_read;
+}
+/*return NULL or extracted string*/
 static char* get_string(buffer_t* buffer)
 {
     char* result;
@@ -212,7 +224,7 @@ static char* get_string(buffer_t* buffer)
     if (position == -1)
         return NULL;
 
-    position += 1;/*including*/
+    position += 1;/*including separator*/
 
     result = make_copy_string(buffer->ptr, position);
 
@@ -221,82 +233,78 @@ static char* get_string(buffer_t* buffer)
     return result;
 }
 
-static char* get_path_data_file(buffer_t* buffer)
+
+
+
+
+static int initialize_listen_socket(server_context_t* server_context)
 {
-    char* path_to_file;
+    int result;
+    struct sockaddr_un addr;
 
-    path_to_file = get_string(buffer);
-    
-    if (!path_to_file)
-    {
-        perror("get_path_data_file");
-        exit(EXIT_FAILURE);
-    }
+    server_context->listen_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
-    return path_to_file;
+    if (server_context->listen_socket_fd == -1)
+        return -1;
+
+    addr.sun_family = AF_UNIX;
+    strcpy(addr.sun_path, SOCKET_PATH);
+
+    result = bind(server_context->listen_socket_fd, 
+                  (struct sockaddr*)&addr, 
+                  sizeof(struct sockaddr_un));
+
+    if (result == -1)
+        return -1;
+
+    result = listen(server_context->listen_socket_fd, queue_connection);
+
+    return result;
 }
 
-static void initialize_config(buffer_t* buffer, const char* path_to_file)
+static void close_all_connection(list_t* sessions);
+
+
+static void stop_server(server_context_t* server_context)
 {
-    int dialog_file_fd;
-    int dialog_id = DEFAULT_DIALOG_ID;
-    int result_read;
-    char* str;
-    dialog_t* dialog;
+    remove_all_node(server_context->dialogs, free_dialog);
+    /*destroy data*/
 
-    dialog_file_fd = open(path_to_file, O_RDONLY);
+    close_listen_socket(server_context->listen_socket_fd);
 
-    if (dialog_file_fd == -1)
-    {
-        perror("initialize_config open file");
-        exit(EXIT_FAILURE);
-    }
+    close_all_connection(server_context->sessions);
+    remove_all_node(server_context->sessions, free_session);    
 
-    while ((result_read = read_from_fd(buffer, dialog_file_fd)))
-    {
-        replace_symbol(buffer->ptr, buffer->size, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
-
-        if (result_read == -1)
-        {
-            perror("initialize_config: read from fd");
-            exit(EXIT_FAILURE);/*cant initialize config*/
-        }
-
-        while ((str = get_string(buffer)))/*TODO*/
-        {
-            dialog = create_dialog(dialog_id, str);
-            dialog_id++;
-
-            create_node(dialog_list, dialog);
-
-            /*TODO: remove this*/
-            printf("%s\n", str);
-            /**/
-        }
-    }
-
-    close(dialog_file_fd);
+    free_server_context(server_context); /*to this moment all data must be destroy*/
 }
 
 
 
+static void close_all_connection(list_t* sessions)
+{
+    session_t* session;
+    node_t* node;
+
+    node = sessions->pointer_in_head;
+
+    for (;node; node = node->next)
+    {
+        if ((session = (session_t*)node->data))
+            close_connection(session->socket_fd);
+    }
+}
 
 
+
+static int is_new_connection(server_context_t* server_context);
 
 
 int main()
 {
-    int listen_socket_fd;
-    int max_d;
     int result;
-    int result_connection;
-    struct timespec timeout;
-    fd_set read_fds, write_fds;
+       
     sigset_t mask, oldmask;
     server_context_t* server_context = NULL;
-
-    session_list = create_list();
-    dialog_list = create_list();
 
 
 
@@ -304,26 +312,23 @@ int main()
     printf("%d\n", getpid());
 #endif
 
+
+
     setup_signal(&mask, &oldmask);
 
-
-    
-    load_config();
-    /*start_server(server_context);*/
-    initialize_listen_socket(&listen_socket_fd);
-
-    max_d = listen_socket_fd;
-    
+    start_server(&server_context);
 
     for (;;)
     {
         /*event selection*/
-        set_timeout(&timeout);
-        prepare_fd_sets(&read_fds, &write_fds, listen_socket_fd);
+        setup_timeout(server_context);
+        prepare_fd_sets(server_context);
         
         /*event selection*/
 
-        result = pselect(max_d + 1, &read_fds, &write_fds, NULL, &timeout, &oldmask);
+        result = pselect(server_context->max_d + 1, 
+                         &server_context->read_fds, &server_context->write_fds,
+                         NULL, &server_context->timeout, &oldmask);
 
         /*event processing*/
 
@@ -331,13 +336,13 @@ int main()
         {
             if (server_state == STOP_SERVER)
             {
-                /*stop_server(server_context);*/
+                stop_server(server_context);
                 break;
             }
             else if (server_state == RELOAD_CONFIG)
             {
                 stop_server(server_context);
-                start_server(server_context);
+                start_server(&server_context);
                 server_state = NOTHING_DO;
             }
         }
@@ -348,33 +353,30 @@ int main()
         else if (result > 0)
         {
             /*printf("Some fd ready");*/
-            if (FD_ISSET(listen_socket_fd, &read_fds))
+            if (is_new_connection(server_context))
             {
-                result_connection = accept_connection(listen_socket_fd);
-                
-                if (result_connection != -1)
-                    max_d = result_connection;
+                accept_connection(server_context);
+                    
                 result--;
             }
 
             if (result > 0)
-                event_handler(&read_fds, &write_fds, listen_socket_fd);
+                event_handler(server_context);
         }
 
-        remove_ended_session();
+        remove_ended_session(server_context->sessions);
         /*event processing*/
     }
 
-    /*TODO: stop without memmory leak*/
-    /*-------------------------------*/
-    free_list(dialog_list, free_dialog);
-    free_list(session_list, free_session);
-
-    close_listen_socket(&listen_socket_fd);
-    /*-------------------------------*/
-
     exit(EXIT_SUCCESS);
 }
+
+static int is_new_connection(server_context_t* server_context)
+{
+    return FD_ISSET(server_context->listen_socket_fd, 
+                    &server_context->read_fds);
+}
+
 
 
 
@@ -428,44 +430,12 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 
 
 
-void initialize_listen_socket(int* listen_socket_fd)
+
+
+void close_listen_socket(int listen_socked_fd)
 {
-    int result;
-    struct sockaddr_un addr;
-
-    *listen_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (*listen_socket_fd == -1)
-    {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
-
-    addr.sun_family = AF_UNIX;
-    strcpy(addr.sun_path, SOCKET_PATH);
-
-    result = bind(*listen_socket_fd, (struct sockaddr*)&addr, 
-                   sizeof(struct sockaddr_un));
-
-    if (result == -1)
-    {
-        perror("bind");
-        exit(EXIT_FAILURE);
-    }
-
-    result = listen(*listen_socket_fd, queue_connection);
-
-    if (result == -1)
-    {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
-}
-
-void close_listen_socket(int* listen_socked_fd)
-{
-    shutdown(*listen_socked_fd, SHUT_RDWR);
-    close(*listen_socked_fd);
+    shutdown(listen_socked_fd, SHUT_RDWR);
+    close(listen_socked_fd);
     unlink(SOCKET_PATH);
 }
 
@@ -474,32 +444,32 @@ void close_listen_socket(int* listen_socked_fd)
 
 
 
-void set_timeout(struct timespec* timeout)
+void setup_timeout(server_context_t* server_context)
 {
-    timeout->tv_sec = WAITING_TIME_IN_SEC;
-    timeout->tv_nsec = WAITING_TIME_IN_NSEC;
+    server_context->timeout.tv_sec = WAITING_TIME_IN_SEC;
+    server_context->timeout.tv_nsec = WAITING_TIME_IN_NSEC;
 }
 
-void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
+void prepare_fd_sets(server_context_t* server_context)
 {
     node_t* node;
     session_t* session;
 
-    FD_ZERO(read_fds);
-    FD_ZERO(write_fds);
+    FD_ZERO(&server_context->read_fds);
+    FD_ZERO(&server_context->write_fds);
 
-    FD_SET(listen_socket_fd, read_fds);
+    FD_SET(server_context->listen_socket_fd, &server_context->read_fds);
 
-    node = session_list->pointer_in_head;
+    node = server_context->sessions->pointer_in_head;
 
     for (; node; node = node->next)
     {
         if ((session = (session_t*)node->data))
         {
             if (session->state == ready_send_info)
-                FD_SET(session->socket_fd, write_fds);
+                FD_SET(session->socket_fd, &server_context->write_fds);
             else if (session->state == ready_receive_info)
-                FD_SET(session->socket_fd, read_fds);
+                FD_SET(session->socket_fd, &server_context->read_fds);
         }
     }
 }
@@ -507,39 +477,26 @@ void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
 
 
 /*return fd connected client or -1*/
-int accept_connection(int listen_socket_fd)
+static void accept_connection(server_context_t* server_context)
 {
     int connected_fd;
     int result;
 
-    connected_fd = try_accept_connection(listen_socket_fd);
+    connected_fd = accept(server_context->listen_socket_fd, NULL, NULL);
     
     if (connected_fd == -1)
-        return -1;
+        return;
 
     result = try_set_nonblock_mode_for_socket(connected_fd);
 
     if (result != -1)
     {
-        if (initialize_new_connection_session(connected_fd) != -1)
-            return connected_fd;    
+        create_connection_session(server_context, connected_fd);
+        
+        server_context->max_d = connected_fd;
     }
-
-    return -1;
 }
-/*TODO:need update*/
-static int try_accept_connection(int listen_socket_fd)
-{
-    int connected_fd;
-
-    connected_fd = accept(listen_socket_fd, NULL, NULL);
-    
-    if (connected_fd == -1)
-        perror("try_accept_connection");
-
-    return connected_fd;
-}
-
+/*return 0 or -1*/
 static int try_set_nonblock_mode_for_socket(int connection_fd)
 {  
     int flags;
@@ -563,60 +520,47 @@ static int try_set_nonblock_mode_for_socket(int connection_fd)
     return 0;
 }
 
-static int initialize_new_connection_session(int connection_fd)
+static void create_connection_session(server_context_t* server_context, int connection_fd)
 {
     session_t* session;
     const dialog_t* dialog;
-    const char* msg;
+    int dialog_id = DEFAULT_DIALOG_ID;
 
-    int current_dialog_id = DEFAULT_DIALOG_ID;
-
-    dialog = get_dialog(current_dialog_id, false);
-
-    if (!dialog)
-        return -1;
+    dialog = get_dialog(server_context->dialogs, dialog_id);
     
-    current_dialog_id = dialog->dialog_id;
-    msg = dialog->msg;
-    
-    session = create_session(connection_fd, current_dialog_id, msg);
+    session = create_session(connection_fd, dialog_id, dialog->msg);
 
-    create_node(session_list, (void*)session);
-
-    return 0;
+    create_node(server_context->sessions, (void*)session);
 }
 
 
 
 
-static void event_handler(fd_set* read_fds, fd_set* write_fds, int listen_socket_fd)
+static void event_handler(server_context_t* server_context)
 {
-    int session_fd;
     node_t* node;
     session_t* session;
-    session_state_t state;
 
-    node = session_list->pointer_in_head;
+    node = server_context->sessions->pointer_in_head;
 
     for (; node; node = node->next)
     {
         if ((session = (session_t*)node->data))
         {
-            session_fd = session->socket_fd;
-            state = session->state;
-
-            if (state == ready_send_info)
+            if (session->state == ready_send_info)
             {
-                if (FD_ISSET(session_fd, write_fds))
+                if (FD_ISSET(session->socket_fd, &server_context->write_fds))
                     handle_write_event(session);
             }
-            else if (state == ready_receive_info)
+            else if (session->state == ready_receive_info)
             {
-                if (FD_ISSET(session_fd, read_fds))
+                if (FD_ISSET(session->socket_fd, &server_context->read_fds))
                     handle_read_event(session);
             }
 
-            change_session_state(session);//this is why client receive message broken pipe, socket close before client send last answer
+            /*data_processing(session);*//*TODO:add me*/
+
+            change_session_state(server_context->dialogs, session);//this is why client receive message broken pipe, socket close before client send last answer
         }
     }
 }
@@ -661,14 +605,13 @@ static void handle_read_event(session_t* session)
     }
 }
 
-static void change_session_state(session_t* session)
+static void change_session_state(list_t* dialogs, session_t* session)
 {
-    const char* msg;
+    int dialog_id;
     const dialog_t* dialog;
-    int current_dialog_id;
 
-    current_dialog_id = session->current_dialog_id;
-    dialog = get_dialog(current_dialog_id, true);
+    dialog_id = session->current_dialog_id + 1;/*next dialog_id*/
+    dialog = get_dialog(dialogs, dialog_id);
     
     if (!dialog)
     {
@@ -676,39 +619,30 @@ static void change_session_state(session_t* session)
         return;
     }
     
-    current_dialog_id = dialog->dialog_id;
-    msg = dialog->msg;
-    
-    try_change_session_state(session, current_dialog_id, msg);
+    try_change_session_state(session, dialog_id, dialog->msg);
 }
 
-/*FIX ME PLEASE!!!*/
-/*fix this!!!! if you need take dialog with next id then just current_dialog_id + 1, dont use this need_next_dialog*/
-static const dialog_t* get_dialog(dialog_state_t current_dialog_id, int need_next_dialog)
+
+
+
+static const dialog_t* get_dialog(list_t* dialogs, int dialog_id)
 {
     node_t* node;
     dialog_t* dialog;
 
-    node = dialog_list->pointer_in_head;
+    node = dialogs->pointer_in_head;
 
     for (; node; node = node->next)
     {
-        if ((dialog = (dialog_t*)node->data))
+        if ((dialog = (dialog_t*)node->data))/*maybe cut this*/
         {
-            if (dialog->dialog_id == current_dialog_id)
-            {
-                if (need_next_dialog == true)
-                    node = node->next;
-
-                if (!node)
-                    return NULL;                
-                return (dialog_t*)node->data;
-            }
+            if (dialog->dialog_id == dialog_id)
+                return dialog;
         }
     }
+
     return NULL;
 }
-/*FIX ME PLEASE!!!*/
 
 
 static void prepare_session_for_close(session_t* session)
@@ -717,39 +651,33 @@ static void prepare_session_for_close(session_t* session)
 }
 
 
-/*TODO: need fix undefined behaviour when we remove some session what stored in
-get_current, and how we can access to memory?*/
-static void remove_ended_session()
+
+static void remove_ended_session(list_t* sessions)
 {
-    int connection_fd;
-    int current_dialog_id;
+    int count_id_close = 0;
     node_t* node;
     session_t* session;
-    node_t** ids_for_close = get_mem(sizeof(node_t) * session_list->count);
-    int count_id_close = 0;
+    node_t** ids_for_close = get_mem(sizeof(node_t) * sessions->count);
 
-    node = session_list->pointer_in_head;
+    node = sessions->pointer_in_head;
 
     for (; node; node = node->next)
     {
-        if ((session = (session_t*)node->data))
+        if ((session = (session_t*)node->data))/*maybe remove this*/
         {
-            current_dialog_id = session->current_dialog_id;
-
-            if (current_dialog_id == ERROR_DIALOG_ID)
+            if (session->current_dialog_id == ERROR_DIALOG_ID)
             {
-                connection_fd = session->socket_fd;
-
-                close_connection(connection_fd);
+                close_connection(session->socket_fd);
 
                 ids_for_close[count_id_close] = node;
                 count_id_close++;
             }
         }
     }
+
     for (int i = 0; i < count_id_close; i++)
     {
-        remove_node(session_list, ids_for_close[i], free_session);
+        remove_node(sessions, ids_for_close[i], free_session);
     }
 
     free(ids_for_close);

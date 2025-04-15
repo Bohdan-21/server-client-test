@@ -52,7 +52,7 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask);
 
 
 
-void set_timeout(struct timespec*);
+void setup_timeout(struct timespec*);
 
 void prepare_fd_sets(fd_set* read_fds, fd_set* write_fds, client_connection_t* client);
 
@@ -106,7 +106,7 @@ int main()
     for (;;)
     {
         /*event selection*/
-        set_timeout(&timeout);
+        setup_timeout(&timeout);
 
         prepare_fd_sets(&read_fds, &write_fds, client_connection);
         /*event selection*/
@@ -323,7 +323,7 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 
 
 
-void set_timeout(struct timespec* timeout)
+void setup_timeout(struct timespec* timeout)
 {
     timeout->tv_sec = WAITING_TIME_IN_SEC;
     timeout->tv_nsec = WAITING_TIME_IN_NSEC;

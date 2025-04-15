@@ -4,6 +4,10 @@ typedef struct
 {
     int max_d;
     int listen_socket_fd;
+
+    struct timespec timeout;
+    fd_set read_fds, write_fds;
+
     list_t* dialogs;
     list_t* sessions;
 } server_context_t;
