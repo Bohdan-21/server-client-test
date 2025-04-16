@@ -2,7 +2,6 @@
 #define DIALOG_H
 
 #include "list.h"
-#include "dialog_state.h"
 #include "base.h"
 
 typedef struct 

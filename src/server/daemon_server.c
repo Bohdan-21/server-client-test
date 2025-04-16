@@ -21,7 +21,7 @@ SIGINT - stop server
 #include "../modules/session.h"
 
 #include "../modules/server_context.h"
-
+#include "../modules/logi.h"
 
 #define NOTHING_DO 0
 #define RELOAD_CONFIG 1
@@ -76,7 +76,7 @@ static int initialize_listen_socket(server_context_t* server_context);
 
 static void stop_server(server_context_t*);
 
-void close_listen_socket(int);
+static void close_listen_socket(int);
 
 static void close_all_connection(list_t* sessions);
 
@@ -105,6 +105,8 @@ static void event_handler(server_context_t* server_context);
 static void handle_write_event(session_t* session);
 
 static void handle_read_event(session_t* session);
+
+static void data_processing(server_context_t* server_context, session_t* session);
 
 static void change_session_state(list_t* dialogs, session_t* session);
 
@@ -246,7 +248,9 @@ static int start_server(server_context_t** server_context)
 #ifdef DEBUG
     printf("Socket initialized\n");
 #endif
-
+    /**/
+    /*initialize logfile*/
+    /**/
     (*server_context)->max_d = (*server_context)->listen_socket_fd;
 
     return 0;
@@ -350,15 +354,42 @@ static int initialize_listen_socket(server_context_t* server_context)
 
 
 
+
+static void stop_all_connection(list_t* sessions)
+{
+    node_t* node;
+    session_t* session;
+
+    node = sessions->pointer_in_head;
+
+    for (;node;node = node->next)
+    {
+        session = (session_t*)node->data;
+
+        close_connection(session->socket_fd);
+        session->connection_state = connection_drop;
+    }
+}
+
+
 static void stop_server(server_context_t* server_context)
 {
     remove_all_node(server_context->dialogs, free_dialog);
-    /*destroy data*/
 
     close_listen_socket(server_context->listen_socket_fd);
 
-    close_all_connection(server_context->sessions);
-    remove_all_node(server_context->sessions, free_session);    
+    /**/
+    /*for remove all connection mark session like connection_drop*/
+    /*and then call remove_ended_connection, obviously this work not effective like now*/
+    stop_all_connection(server_context->sessions);
+    remove_ended_session(server_context->sessions);
+    /*close_all_connection(server_context->sessions);*/
+    /*remove_all_node(server_context->sessions, free_session); */   
+    /**/
+
+    /**/
+    /*destroy fd logfile*/
+    /**/
 
     free_server_context(server_context); /*to this moment all data must be destroy*/
 }
@@ -478,7 +509,7 @@ static void create_connection_session(server_context_t* server_context, int conn
 
     dialog = get_dialog(server_context->dialogs, dialog_id);
     
-    session = create_session(connection_fd, dialog_id, dialog->msg);
+    session = create_session(connection_fd, dialog, server_context->dialogs->count);
 
     create_node(server_context->sessions, (void*)session);
 }
@@ -507,9 +538,9 @@ static void event_handler(server_context_t* server_context)
                     handle_read_event(session);
             }
 
-            /*data_processing(session);*//*TODO:add me*/
+            data_processing(server_context, session);/*TODO:add me*/
 
-            change_session_state(server_context->dialogs, session);//this is why client receive message broken pipe, socket close before client send last answer
+            /*change_session_state(server_context->dialogs, session);*///this is why client receive message broken pipe, socket close before client send last answer
         }
     }
 }
@@ -528,7 +559,11 @@ static void handle_write_event(session_t* session)
     /*if some reason system call write return -1*/
     if (result_operation == -1)
     {
-        prepare_session_for_close(session);
+        /*prepare_session_for_close(session);*/
+        /**/
+        session->connection_state = connection_drop;
+        close_connection(session->socket_fd);
+        /**/
     }
 }
 
@@ -550,7 +585,73 @@ static void handle_read_event(session_t* session)
     */
     if (result_operation == -1 || result_operation == 0)
     {
-        prepare_session_for_close(session);
+        /*prepare_session_for_close(session);*/
+        /**/
+        session->connection_state = connection_drop;
+        close_connection(session->socket_fd);
+        /**/
+    }
+}
+
+
+
+
+static void update_session(server_context_t* server_context, session_t* session)
+{
+    if (session->state == ready_send_info)
+    {
+        /*else there are info for sending*/
+        if (is_buffer_empty(session->buffer))
+        {
+            /*prepare for receive answer*/
+            session->state = ready_receive_info;
+        }
+    }
+    else/*ready_receive_info*/
+    {
+        int position;
+        if ((position = find(session->buffer, C_STRING_SEPARATOR)) != -1)
+        {
+            /*+1 for including C_STRING_SEPARATOR*/
+            const dialog_t* dialog;
+            char* tmp = make_copy_string(session->buffer->ptr, position + 1);
+
+            session->answers[session->dialog->dialog_id- 1] = tmp;
+
+            if ((dialog = get_dialog(server_context->dialogs, 
+                                    session->dialog->dialog_id + 1)))
+            {
+                /*update session data*/
+                try_change_session_state(session, dialog);
+            }
+            else/*cant find next dialog*/
+            {
+                /*close connection and start logging*/
+                session->connection_state = connection_log;
+                close_connection(session->socket_fd);
+            }
+        }
+    }
+}
+
+static void data_processing(server_context_t* server_context, session_t* session)
+{
+    if (session->connection_state == connection_success)
+        update_session(server_context, session);
+    if (session->connection_state == connection_log)
+    {
+        /**/
+        /*if log module say his empty than push data on logind module*/
+        /*and change session->connection_state = connection_end*/
+        /*else wait when session can push data to logind module*/
+        /*when data is pushed on logi module than session destroy*/
+        /*on remove_ended_session()*/
+        /**/
+        if (!is_logging())
+        {
+            session->connection_state = connection_end;
+            push_data(session);
+        }
     }
 }
 
@@ -559,16 +660,19 @@ static void change_session_state(list_t* dialogs, session_t* session)
     int dialog_id;
     const dialog_t* dialog;
 
-    dialog_id = session->current_dialog_id + 1;/*next dialog_id*/
+    dialog_id = session->dialog->dialog_id + 1;/*next dialog_id*/
     dialog = get_dialog(dialogs, dialog_id);
     
+    /**/
+    /*need set connection_log for store data on logfile*/
     if (!dialog)
     {
         prepare_session_for_close(session);
         return;
     }
+    /**/
     
-    try_change_session_state(session, dialog_id, dialog->msg);
+    try_change_session_state(session, dialog);
 }
 
 static const dialog_t* get_dialog(list_t* dialogs, int dialog_id)
@@ -592,7 +696,7 @@ static const dialog_t* get_dialog(list_t* dialogs, int dialog_id)
 
 static void prepare_session_for_close(session_t* session)
 {
-    update_session_current_dialog_id(session, ERROR_DIALOG_ID);
+    /*update_session_current_dialog_id(session, ERROR_DIALOG_ID);*/
 }
 
 
@@ -602,7 +706,7 @@ static void remove_ended_session(list_t* sessions)
     int count_id_close = 0;
     node_t* node;
     session_t* session;
-    node_t** ids_for_close = get_mem(sizeof(node_t) * sessions->count);
+    node_t** ids_for_close = get_mem(sizeof(node_t*) * sessions->count);/*TODO:node_t* not node_t*/
 
     node = sessions->pointer_in_head;
 
@@ -610,9 +714,15 @@ static void remove_ended_session(list_t* sessions)
     {
         if ((session = (session_t*)node->data))/*maybe remove this*/
         {
-            if (session->current_dialog_id == ERROR_DIALOG_ID)
+            /**/
+            /*if (session->connection_state == connection_log)*/
+            /*then we need close connection and log data*/
+            /*after this we can set connection_end and clear all data*/
+            /**/
+            if (session->connection_state == connection_drop ||
+                session->connection_state == connection_end)
             {
-                close_connection(session->socket_fd);
+                /*close_connection(session->socket_fd);*/
 
                 ids_for_close[count_id_close] = node;
                 count_id_close++;
