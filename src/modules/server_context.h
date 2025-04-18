@@ -1,4 +1,8 @@
+#ifndef SERVER_CONTEXT_H
+#define SERVER_CONTEXT_H
+
 #include "list.h"
+#include "logi.h"
 
 typedef struct 
 {
@@ -10,25 +14,14 @@ typedef struct
 
     list_t* dialogs;
     list_t* sessions;
+
+    log_data_t* data_log;
 } server_context_t;
 
 
-server_context_t* create_server_context()
-{
-    server_context_t* server_context = get_mem(sizeof(server_context_t));
-    
-    server_context->dialogs = create_list();
-    server_context->sessions = create_list();
+server_context_t* create_server_context();
 
-    return server_context;
-}
+void free_server_context(server_context_t* server_context);
 
-void free_server_context(server_context_t* server_context)
-{
-    free_list(server_context->sessions, NULL);
-    free_list(server_context->dialogs, NULL);
 
-    free(server_context);
-
-    server_context = NULL;
-}
+#endif

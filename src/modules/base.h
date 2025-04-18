@@ -12,9 +12,9 @@
 
 void* get_mem(size_t size);
 
-char* make_copy_string(const char* str, int length);
+char* make_new_copy_string(const char* str, int length);
 
-char* make_c_string(char* str, int modify_position);
+size_t make_copy_string(char* dest, const char* src);
 
 void replace_symbol(char* str, int length, char pattern, char replace);
 

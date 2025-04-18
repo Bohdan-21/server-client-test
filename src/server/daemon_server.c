@@ -16,7 +16,6 @@ SIGINT - stop server
 #include "../modules/list.h"
 #include "../modules/buffer.h"
 #include "../modules/dialog.h"
-#include "../modules/dialog_state.h"
 #include "../modules/custom_io.h"
 #include "../modules/session.h"
 
@@ -230,7 +229,6 @@ void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 }
 
 
-
 static int start_server(server_context_t** server_context)
 {
     *server_context = create_server_context();
@@ -250,8 +248,13 @@ static int start_server(server_context_t** server_context)
 #endif
     /**/
     /*initialize logfile*/
+    (*server_context)->data_log = 
+        initialize_logging_module(BASE_SIZE * (*server_context)->dialogs->count);
+    if ((*server_context)->data_log->log_file_fd == -1)
+        return -1;
     /**/
-    (*server_context)->max_d = (*server_context)->listen_socket_fd;
+
+    (*server_context)->max_d = (*server_context)->data_log->log_file_fd;
 
     return 0;
 }
@@ -318,7 +321,7 @@ static char* get_string(buffer_t* buffer)
 
     position += 1;/*including separator*/
 
-    result = make_copy_string(buffer->ptr, position);
+    result = make_new_copy_string(buffer->ptr, position);
 
     move_content_left(buffer, position);
 
@@ -371,7 +374,9 @@ static void stop_all_connection(list_t* sessions)
     }
 }
 
-
+/*update stop_server(need more protected),*/
+/*stop_server(need more protected), when server cant start then call */
+/*stop_server which clean reserved data and stop programm*/
 static void stop_server(server_context_t* server_context)
 {
     remove_all_node(server_context->dialogs, free_dialog);
@@ -389,6 +394,7 @@ static void stop_server(server_context_t* server_context)
 
     /**/
     /*destroy fd logfile*/
+    free_loging_module(server_context->data_log);
     /**/
 
     free_server_context(server_context); /*to this moment all data must be destroy*/
@@ -614,7 +620,7 @@ static void update_session(server_context_t* server_context, session_t* session)
         {
             /*+1 for including C_STRING_SEPARATOR*/
             const dialog_t* dialog;
-            char* tmp = make_copy_string(session->buffer->ptr, position + 1);
+            char* tmp = make_new_copy_string(session->buffer->ptr, position + 1);
 
             session->answers[session->dialog->dialog_id- 1] = tmp;
 
@@ -647,10 +653,10 @@ static void data_processing(server_context_t* server_context, session_t* session
         /*when data is pushed on logi module than session destroy*/
         /*on remove_ended_session()*/
         /**/
-        if (!is_logging())
+        if (!is_logging(server_context->data_log))
         {
             session->connection_state = connection_end;
-            push_data(session);
+            push_data(server_context->data_log, session);
         }
     }
 }

@@ -17,7 +17,7 @@ void* get_mem(size_t size)
 
 
 
-char* make_copy_string(const char* str, int length)
+char* make_new_copy_string(const char* str, int length)
 {
     char* result = get_mem(length);
 
@@ -25,12 +25,14 @@ char* make_copy_string(const char* str, int length)
 
     return result;
 }
-
-char* make_c_string(char* str, int modify_position)
+/*work only with c string, return length src, including '\0'*/
+size_t make_copy_string(char* dest, const char* src)
 {
-    str[modify_position] = '\0';
+    size_t length = strlen(src) + 1;/*including '\0'*/
 
-    return str;
+    memmove(dest, src, length);
+
+    return length;
 }
 
 void replace_symbol(char* str, int length, char pattern, char replace)
