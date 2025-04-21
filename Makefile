@@ -54,4 +54,4 @@ mk_client_dir: $(BIN_DIR)/$(CLIENT_DIR)
 
 
 clean:
-	rm -rf $(OBJ_DIR)/* $(BIN_DIR)/* $(SOCKET_FILE)
+	rm -rf $(OBJ_DIR)/* $(BIN_DIR)/* $(SOCKET_FILE) ./server.log

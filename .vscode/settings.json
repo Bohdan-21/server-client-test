@@ -10,6 +10,7 @@
         "functional": "c",
         "session.h": "c",
         "list.h": "c",
-        "base.h": "c"
+        "base.h": "c",
+        "logi.h": "c"
     }
 }

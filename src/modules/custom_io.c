@@ -25,7 +25,8 @@ int read_from_fd(buffer_t* destination, int source)
         /*exit(EXIT_FAILURE);*/
         return result_read;
     }
-    /*update_buffer_content_length(destination, result_read);*/destination->size+=result_read;
+    /*update_buffer_content_length(destination, result_read);*/
+    destination->length+=result_read;
 
     return result_read;
 }

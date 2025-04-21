@@ -89,6 +89,7 @@ void prepare_fd_sets(server_context_t* server_context);
 
 static int is_new_connection(server_context_t* server_context);
 
+static int is_ready_logging(server_context_t* server_context);
 
 
 static void accept_connection(server_context_t* server_context);
@@ -176,11 +177,17 @@ int main()
         }
         else if (result > 0)
         {
-            /*printf("Some fd ready");*/
             if (is_new_connection(server_context))
             {
                 accept_connection(server_context);
                     
+                result--;
+            }
+            if (is_ready_logging(server_context))
+            {   
+                if (send_log_data(server_context->data_log) == -1)
+                    stop_server(server_context);
+
                 result--;
             }
 
@@ -248,8 +255,10 @@ static int start_server(server_context_t** server_context)
 #endif
     /**/
     /*initialize logfile*/
-    (*server_context)->data_log = 
-        initialize_logging_module(BASE_SIZE * (*server_context)->dialogs->count);
+    size_t buffer_size = BASE_BUFFER_SIZE * (*server_context)->dialogs->count;
+
+    (*server_context)->data_log = initialize_logging_module(buffer_size);
+
     if ((*server_context)->data_log->log_file_fd == -1)
         return -1;
     /**/
@@ -281,14 +290,14 @@ static int initialize_config(server_context_t* server_context, int file_fd)
     
     char* str;
     dialog_t* dialog;
-    buffer_t* buffer = create_buffer();
+    buffer_t* buffer = create_buffer(BASE_BUFFER_SIZE);
 
     while((result_read = read_from_fd(buffer, file_fd)))
     {
         if (result_read == -1)
             break;
 
-        replace_symbol(buffer->ptr, buffer->size, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
+        replace_symbol(buffer->ptr, buffer->length, DIRTY_STRING_SEPARATOR, C_STRING_SEPARATOR);
 
         while((str = get_string(buffer)))
         {
@@ -438,6 +447,13 @@ void prepare_fd_sets(server_context_t* server_context)
 
     FD_SET(server_context->listen_socket_fd, &server_context->read_fds);
 
+    /*add log_file_fd if we have data for logging*/
+    if (is_logging(server_context->data_log))
+    {
+        FD_SET(server_context->data_log->log_file_fd, &server_context->write_fds);
+    }
+    /**/
+
     node = server_context->sessions->pointer_in_head;
 
     for (; node; node = node->next)
@@ -460,6 +476,11 @@ static int is_new_connection(server_context_t* server_context)
                     &server_context->read_fds);
 }
 
+static int is_ready_logging(server_context_t* server_context)
+{
+    return FD_ISSET(server_context->data_log->log_file_fd,
+                    &server_context->write_fds);
+}
 
 
 /*return fd connected client or -1*/

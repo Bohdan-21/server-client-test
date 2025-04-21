@@ -16,8 +16,8 @@ client_connection_t* create_client_connection(int input_fd, int output_fd,
 
     client_connection->client_state = ready_receive_info_from_server;
 
-    client_connection->input_buffer = create_buffer();
-    client_connection->server_buffer = create_buffer();
+    client_connection->input_buffer = create_buffer(BASE_BUFFER_SIZE);
+    client_connection->server_buffer = create_buffer(BASE_BUFFER_SIZE);
 
     return client_connection;
 }

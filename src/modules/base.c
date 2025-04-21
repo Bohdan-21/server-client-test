@@ -47,7 +47,7 @@ void replace_symbol(char* str, int length, char pattern, char replace)
 
 
 
-
+/*
 
 static int get_separator_position(const char* str);
 
@@ -73,8 +73,8 @@ static char* make_copy_string_old(const char* str)
     size_t size;
     char *new_str;
 
-    size = get_separator_position(str) + 1;/*include separator*/
-    
+    size = get_separator_position(str) + 1;*//*include separator*/
+    /*
     new_str = get_mem(size);
 
     memmove(new_str, str, size);
@@ -113,3 +113,4 @@ static int get_separator_position(const char* str)
     
     return i;
 }
+*/

@@ -12,7 +12,7 @@ session_t* create_session(int connected_fd, const dialog_t* new_dialog, int coun
     session = get_mem(sizeof(session_t));
 
     session->socket_fd = connected_fd;
-    session->buffer = create_buffer();
+    session->buffer = create_buffer(BASE_BUFFER_SIZE);
 
     /**/
     session->connection_state = connection_success;
@@ -65,5 +65,5 @@ static void update_session_data(session_t* session, const dialog_t* dialog)
     /*copy_string_to_buffer(session->buffer, msg);*//*TODO:*/
     
     int length = make_copy_string(session->buffer->ptr, dialog->msg);
-    session->buffer->size = length;
+    session->buffer->length = length;
 }

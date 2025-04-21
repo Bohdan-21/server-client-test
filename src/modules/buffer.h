@@ -9,17 +9,19 @@
 #include "base.h"
 
 
-#define BASE_SIZE 128
+#define BASE_BUFFER_SIZE 128
 
 
 typedef struct 
 {
     char* ptr;
-    size_t size;
+    size_t length;/*content length*/
+
+    size_t size;/*buffer size*/
 } buffer_t;
 
 
-buffer_t* create_buffer();
+buffer_t* create_buffer(size_t buffer_size);
 
 void free_buffer(void*);
 
