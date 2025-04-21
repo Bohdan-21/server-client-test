@@ -71,38 +71,32 @@ int find(buffer_t* buffer, char separator)
 }
 
 
-/*need uptdate*/
-/*memmove(buffer->ptr, buffer->ptr + offser, n)*/
-/*where n = buffer->size - offset;*/
-/*this function can work without allocated new mew*/
+
+
 void move_content_left(buffer_t* buffer, int offset)
 {
     int n;
-    char* dest;
 
     if (offset <= 0)
         return;    
 
     n = buffer->length - offset;
-    dest = get_mem(buffer->size);
 
-    memmove(dest, buffer->ptr + offset, n);
+    memmove(buffer->ptr, buffer->ptr + offset, n);
 
-    free(buffer->ptr);
-
-    buffer->ptr = dest;
     buffer->length = n;
+}
 
-    /*int i = 0;
-    int j = offset;
 
-    for (;i < buffer->size; i++, j++)
-    {
-        if (j >= buffer->size)
-            break;
-        else
-            buffer->ptr[i] = buffer->ptr[j];
-    }
 
-    buffer->size -= offset;*/
+void push_string_on_buffer(buffer_t* buffer, char* str)
+{
+    size_t length;
+    char* end_point;
+
+    end_point = get_buffer_end_pointer(buffer);
+
+    length = make_copy_string(end_point, str);
+
+    buffer->length += length;
 }

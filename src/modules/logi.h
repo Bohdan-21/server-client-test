@@ -28,11 +28,13 @@ typedef struct
 
 log_data_t* initialize_logging_module(size_t buffer_size);
 
-void free_loging_module(void* data);
+void free_logging_module(void* data);
 
 
 
 int is_logging(log_data_t* log_data);
+
+
 
 void push_data(log_data_t* log_data, const session_t* session);
 

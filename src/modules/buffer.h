@@ -48,4 +48,7 @@ int find(buffer_t* buffer, char separator);
 void move_content_left(buffer_t* buffer, int count_move);
 
 
+
+void push_string_on_buffer(buffer_t* buffer, char* str);
+
 #endif
