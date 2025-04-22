@@ -35,6 +35,8 @@ size_t get_buffer_free_space(buffer_t* buffer);
 
 size_t get_buffer_content_length(buffer_t* buffer);
 
+void increase_buffer_content_length(buffer_t* buffer, size_t increase_on);
+
 
 
 void clear_buffer(buffer_t* buffer);
@@ -49,6 +51,6 @@ void move_content_left(buffer_t* buffer, int count_move);
 
 
 
-void push_string_on_buffer(buffer_t* buffer, char* str);
+void push_string_on_buffer(buffer_t* buffer, const char* str);
 
 #endif

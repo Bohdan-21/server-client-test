@@ -41,15 +41,9 @@ void free_session(void*);
 
 
 
-void update_session_current_dialog_id(session_t* session, const dialog_t* dialog);
-
-
-
-void try_change_session_state(session_t* session, const dialog_t* dialog);
-
-
-
 int extract_answer(session_t* session);
+
+void update_session_data(session_t* session, const dialog_t* dialog);
 
 
 #endif

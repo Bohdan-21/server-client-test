@@ -1,6 +1,9 @@
 #ifndef SERVER_CONTEXT_H
 #define SERVER_CONTEXT_H
 
+#include <time.h>
+#include <sys/select.h>
+
 #include "list.h"
 #include "logi.h"
 

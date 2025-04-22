@@ -4,7 +4,6 @@
 
 static int remove_node_recursive(node_t**, node_t*, destroy_function_t);
 static void remove_all_node_recursive(node_t*, destroy_function_t);
-static node_t** get_last(node_t**);
 
 
 
@@ -30,15 +29,13 @@ void free_list(list_t* list, destroy_function_t destroy_function)
 void create_node(list_t* list, void* ptr)
 {
     node_t* new_node;
-    node_t** pointer_in_last;
 
     new_node = get_mem(sizeof(node_t));
-    pointer_in_last = get_last(&list->pointer_in_head);
 
     new_node->data = ptr;
-    new_node->next = NULL;
+    new_node->next = list->pointer_in_head;
 
-    *pointer_in_last = new_node;
+    list->pointer_in_head = new_node;
     list->count++;
 }
 
@@ -94,11 +91,4 @@ static void remove_all_node_recursive(node_t* ptr, destroy_function_t destroy_fu
         destroy_function(ptr->data);
         
     free(ptr);
-}
-
-static node_t** get_last(node_t** ptr)
-{
-    if (!(*ptr))
-        return ptr;
-    return get_last(&(*ptr)->next);
 }

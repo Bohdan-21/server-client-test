@@ -635,12 +635,10 @@ static void update_session(server_context_t* server_context, session_t* session)
             if ((dialog = get_dialog(server_context->dialogs, 
                                     session->dialog->dialog_id + 1)))
             {
-                /*update session data*/
-                try_change_session_state(session, dialog);
+                update_session_data(session, dialog);
             }
             else/*cant find next dialog*/
             {
-                /*close connection and start logging*/
                 session->connection_state = connection_log;
                 close_connection(session->socket_fd);
             }

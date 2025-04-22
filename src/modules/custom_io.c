@@ -12,8 +12,7 @@ int read_from_fd(buffer_t* destination, int source)
 
     if (!free_space)
     {
-        perror("read_from_fd free_space");
-        /*exit(EXIT_FAILURE);*/
+        perror("read_from_fd");
         return -1;
     }
 
@@ -21,12 +20,11 @@ int read_from_fd(buffer_t* destination, int source)
 
     if (result_read == -1)
     {
-        perror("read_from_fd result_read");
-        /*exit(EXIT_FAILURE);*/
-        return result_read;
+        perror("read_from_fd");
+        return -1;
     }
-    /*update_buffer_content_length(destination, result_read);*/
-    destination->length+=result_read;
+
+    increase_buffer_content_length(destination, result_read);
 
     return result_read;
 }
@@ -44,12 +42,11 @@ int write_to_fd(int destination, buffer_t* source)
 
     if (result_write == -1)
     {
-        perror("write_to_fd result_write");
-        /*exit(EXIT_FAILURE);*/
-        return result_write;
+        perror("write_to_fd");
+        return -1;
     }
 
-    /*removal_content_left_n_buffer(source, result_write);*/move_content_left(source, result_write);
+    move_content_left(source, result_write);
 
     return result_write;
 }

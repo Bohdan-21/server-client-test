@@ -2,11 +2,7 @@
 #define CUSTOM_IO_H
 
 #include <unistd.h>
-
 #include "buffer.h"
-
-
-
 
 int read_from_fd(buffer_t* destination, int source);
 

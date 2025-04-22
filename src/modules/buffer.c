@@ -42,6 +42,11 @@ size_t get_buffer_content_length(buffer_t* buffer)
     return buffer->length;
 }
 
+void increase_buffer_content_length(buffer_t* buffer, size_t increase_on)
+{
+    buffer->length += increase_on;
+}
+
 
 
 void clear_buffer(buffer_t* buffer)
@@ -53,7 +58,7 @@ int is_buffer_empty(buffer_t* buffer)
 {
     return buffer->length == 0;
 }
-
+/*return position where find separator or -1*/
 int find(buffer_t* buffer, char separator)
 {
     int position = -1;
@@ -89,7 +94,7 @@ void move_content_left(buffer_t* buffer, int offset)
 
 
 
-void push_string_on_buffer(buffer_t* buffer, char* str)
+void push_string_on_buffer(buffer_t* buffer, const char* str)
 {
     size_t length;
     char* end_point;
