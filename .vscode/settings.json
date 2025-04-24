@@ -11,6 +11,7 @@
         "session.h": "c",
         "list.h": "c",
         "base.h": "c",
-        "logi.h": "c"
+        "logi.h": "c",
+        "client_context.h": "c"
     }
 }

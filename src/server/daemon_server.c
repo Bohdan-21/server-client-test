@@ -161,6 +161,7 @@ int main()
 
         if (result == -1)/*receive signal*/
         {
+            /*handle received signal*/
             if (server_state == STOP_SERVER)
             {
                 shutdown_server(EXIT_SUCCESS, server_context);
@@ -183,6 +184,7 @@ int main()
         }
         else if (result > 0)
         {
+            /*handle received event*/
             if (is_new_connection(server_context))
             {
                 accept_connection(server_context);
