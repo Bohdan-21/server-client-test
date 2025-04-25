@@ -11,10 +11,7 @@ int read_from_fd(buffer_t* destination, int source)
     pointer = get_buffer_end_pointer(destination);
 
     if (!free_space)
-    {
-        perror("read_from_fd");
         return -1;
-    }
 
     result_read = read(source, pointer, free_space);
 
