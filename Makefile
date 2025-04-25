@@ -8,8 +8,6 @@ CLIENT_DIR = client
 MODULES_DIR = modules
 SOCKET_FILE = socket_file
 
-TEST_DIR = test
-
 SRCFILES = $(wildcard $(SRC_DIR)/$(MODULES_DIR)/*.c)
 OBJMODULES = $(patsubst $(SRC_DIR)/$(MODULES_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCFILES));
 
@@ -39,12 +37,6 @@ $(BIN_DIR)/test_buffer: $(TEST_DIR)/buffer_test.c $(OBJMODULES)
 daemon_server: mk_server_dir $(BIN_DIR)/$(SERVER_DIR)/daemon_server
 
 client: mk_client_dir $(BIN_DIR)/$(CLIENT_DIR)/client
-
-
-test_custom_io: $(BIN_DIR)/test_custom_io
-
-test_buffer: $(BIN_DIR)/test_buffer
-
 
 
 mk_server_dir: $(BIN_DIR)/$(SERVER_DIR)

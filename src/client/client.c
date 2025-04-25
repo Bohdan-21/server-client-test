@@ -365,14 +365,3 @@ static void swap_buffers(buffer_t** first, buffer_t** second)
     *first = *second;
     *second = tmp;
 }
-
-static void swap(void* a, void* b, size_t length)
-{
-    void* tmp = malloc(length);
-
-    memmove(tmp, a, length);
-    memmove(a, b, length);
-    memmove(b, tmp, length);
-
-    free(tmp);
-}

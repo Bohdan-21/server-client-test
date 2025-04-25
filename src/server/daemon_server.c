@@ -47,15 +47,13 @@ enum
 
 volatile sig_atomic_t server_state = NOTHING_DO;
 
-
-
-void signal_handler(int);
+static void signal_handler(int);
 
 
 
-void setup_signal(sigset_t* mask, sigset_t* oldmask);
+static void setup_signal(sigset_t* mask, sigset_t* oldmask);
 
-void setup_signal_mask(sigset_t* mask, sigset_t* oldmask);
+static void setup_signal_mask(sigset_t* mask, sigset_t* oldmask);
 
 
 
@@ -85,9 +83,15 @@ static void shutdown_server(int exit_status, server_context_t* server_context);
 
 
 
-void setup_timeout(server_context_t* server_context);
+static void setup_timeout(server_context_t* server_context);
 
-void prepare_fd_sets(server_context_t* server_context);
+static void prepare_fd_sets(server_context_t* server_context);
+
+
+
+static void handle_received_signal(server_context_t** server_context);
+
+static void handle_received_event(server_context_t** server_context, int result);
 
 
 
@@ -132,13 +136,9 @@ int main()
     sigset_t mask, oldmask;
     server_context_t* server_context = NULL;
 
-
-
 #ifdef PRINT_PID
     printf("%d\n", getpid());
 #endif
-
-
 
     setup_signal(&mask, &oldmask);
 
@@ -150,7 +150,6 @@ int main()
         /*event selection*/
         setup_timeout(server_context);
         prepare_fd_sets(server_context);
-        
         /*event selection*/
 
         result = pselect(server_context->max_d + 1, 
@@ -158,24 +157,8 @@ int main()
                          NULL, &server_context->timeout, &oldmask);
 
         /*event processing*/
-
-        if (result == -1)/*receive signal*/
-        {
-            /*handle received signal*/
-            if (server_state == STOP_SERVER)
-            {
-                shutdown_server(EXIT_SUCCESS, server_context);
-            }
-            else if (server_state == RELOAD_CONFIG)
-            {
-                stop_server(server_context);
-                
-                if (start_server(&server_context) == -1)
-                    shutdown_server(EXIT_FAILURE, server_context);
-
-                server_state = NOTHING_DO;
-            }
-        }
+        if (result == -1)
+            handle_received_signal(&server_context);
         else if (result == 0)
         {
 #ifdef DEBUG
@@ -183,25 +166,7 @@ int main()
 #endif
         }
         else if (result > 0)
-        {
-            /*handle received event*/
-            if (is_new_connection(server_context))
-            {
-                accept_connection(server_context);
-                    
-                result--;
-            }
-            if (is_ready_logging(server_context))
-            {   
-                if (send_log_data(server_context->data_log) == -1)
-                    stop_server(server_context);
-
-                result--;
-            }
-
-            if (result > 0)
-                event_handler(server_context);
-        }
+            handle_received_event(&server_context, result);
 
         remove_ended_session(server_context->sessions);
         /*event processing*/
@@ -212,7 +177,7 @@ int main()
 
 
 
-void signal_handler(int signum)
+static void signal_handler(int signum)
 {
     signal(signum, signal_handler);
 
@@ -227,7 +192,7 @@ void signal_handler(int signum)
 
 
 
-void setup_signal(sigset_t* mask, sigset_t* oldmask)
+static void setup_signal(sigset_t* mask, sigset_t* oldmask)
 {
     signal(SIGINT, signal_handler);
     signal(SIGUSR1, signal_handler);
@@ -235,7 +200,7 @@ void setup_signal(sigset_t* mask, sigset_t* oldmask)
     setup_signal_mask(mask, oldmask);
 }
 
-void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
+static void setup_signal_mask(sigset_t* mask, sigset_t* oldmask)
 {
     sigemptyset(mask);
     sigaddset(mask, SIGINT);
@@ -275,7 +240,7 @@ static int start_server(server_context_t** server_context)
 
     return 0;
 }
-/*TODO:this need check|return 0 or -1*/
+/*return 0 or -1*/
 static int load_config(server_context_t* server_context)
 {
     int result;
@@ -309,7 +274,7 @@ static int initialize_config(server_context_t* server_context, int file_fd)
 
         while((str = get_string(buffer)))
         {
-            dialog = create_dialog(dialog_id, str);/*maybe need make copy for dialog?*/
+            dialog = create_dialog(dialog_id, str);
 
             dialog_id++;
 
@@ -376,7 +341,7 @@ static int initialize_listen_socket(server_context_t* server_context)
 
 static void stop_server(server_context_t* server_context)
 {
-    if (server_context->data_log)/*not NULL*/
+    if (server_context->data_log)
         free_logging_module(server_context->data_log);
 
     close_listen_socket(server_context->listen_socket_fd);
@@ -425,13 +390,13 @@ static void shutdown_server(int exit_status, server_context_t* server_context)
 
 
 
-void setup_timeout(server_context_t* server_context)
+static void setup_timeout(server_context_t* server_context)
 {
     server_context->timeout.tv_sec = WAITING_TIME_IN_SEC;
     server_context->timeout.tv_nsec = WAITING_TIME_IN_NSEC;
 }
 
-void prepare_fd_sets(server_context_t* server_context)
+static void prepare_fd_sets(server_context_t* server_context)
 {
     node_t* node;
     session_t* session;
@@ -452,16 +417,53 @@ void prepare_fd_sets(server_context_t* server_context)
 
     for (; node; node = node->next)
     {
-        if ((session = (session_t*)node->data))
-        {
-            if (session->state == ready_send_info)
-                FD_SET(session->socket_fd, &server_context->write_fds);
-            else if (session->state == ready_receive_info)
-                FD_SET(session->socket_fd, &server_context->read_fds);
-        }
+        session = (session_t*)node->data;
+
+        if (session->state == ready_send_info)
+            FD_SET(session->socket_fd, &server_context->write_fds);
+        else if (session->state == ready_receive_info)
+            FD_SET(session->socket_fd, &server_context->read_fds);
     }
 }
 
+
+
+static void handle_received_signal(server_context_t** server_context)
+{
+    if (server_state == STOP_SERVER)
+    {
+        shutdown_server(EXIT_SUCCESS, *server_context);
+    }
+    else if (server_state == RELOAD_CONFIG)
+    {
+        stop_server(*server_context);
+        
+        if (start_server(server_context) == -1)
+            shutdown_server(EXIT_FAILURE, *server_context);
+
+        server_state = NOTHING_DO;
+    }
+}
+
+static void handle_received_event(server_context_t** server_context, int result)
+{
+    if (is_new_connection(*server_context))
+    {
+        accept_connection(*server_context);
+            
+        result--;
+    }
+    if (is_ready_logging(*server_context))
+    {   
+        if (send_log_data((*server_context)->data_log) == -1)
+            shutdown_server(EXIT_FAILURE, *server_context);
+
+        result--;
+    }
+
+    if (result > 0)
+        event_handler(*server_context);
+}
 
 
 static int is_new_connection(server_context_t* server_context)
@@ -546,23 +548,20 @@ static void event_handler(server_context_t* server_context)
 
     for (; node; node = node->next)
     {
-        if ((session = (session_t*)node->data))
+        session = (session_t*)node->data;
+
+        if (session->state == ready_send_info)
         {
-            if (session->state == ready_send_info)
-            {
-                if (FD_ISSET(session->socket_fd, &server_context->write_fds))
-                    handle_write_event(session);
-            }
-            else if (session->state == ready_receive_info)
-            {
-                if (FD_ISSET(session->socket_fd, &server_context->read_fds))
-                    handle_read_event(session);
-            }
-
-            data_processing(server_context, session);/*TODO:add me*/
-
-            /*change_session_state(server_context->dialogs, session);*///this is why client receive message broken pipe, socket close before client send last answer
+            if (FD_ISSET(session->socket_fd, &server_context->write_fds))
+                handle_write_event(session);
         }
+        else if (session->state == ready_receive_info)
+        {
+            if (FD_ISSET(session->socket_fd, &server_context->read_fds))
+                handle_read_event(session);
+        }
+
+        data_processing(server_context, session);
     }
 }
 
@@ -580,11 +579,8 @@ static void handle_write_event(session_t* session)
     /*if some reason system call write return -1*/
     if (result_operation == -1)
     {
-        /*prepare_session_for_close(session);*/
-        /**/
         session->connection_state = connection_drop;
         close_connection(session->socket_fd);
-        /**/
     }
 }
 
@@ -599,18 +595,11 @@ static void handle_read_event(session_t* session)
 
     result_operation = read_from_fd(buffer, session_fd);
 
-    /*
-    if we receive ready for read but nothing read (return 0): situation end file, 
-                                                              system call shutdown
-    or if string length is more BUFFER_SIZE, or if system call return -1
-    */
+    /*if we receive ready for read and result is 0 that mean client close connection*/
     if (result_operation == -1 || result_operation == 0)
     {
-        /*prepare_session_for_close(session);*/
-        /**/
         session->connection_state = connection_drop;
         close_connection(session->socket_fd);
-        /**/
     }
 }
 
@@ -621,12 +610,8 @@ static void update_session(server_context_t* server_context, session_t* session)
 {
     if (session->state == ready_send_info)
     {
-        /*else there are info for sending*/
         if (is_buffer_empty(session->buffer))
-        {
-            /*prepare for receive answer*/
             session->state = ready_receive_info;
-        }
     }
     else/*ready_receive_info*/
     {
@@ -654,13 +639,11 @@ static void data_processing(server_context_t* server_context, session_t* session
         update_session(server_context, session);
     if (session->connection_state == connection_log)
     {
-        /**/
         /*if log module say his empty than push data on logind module*/
         /*and change session->connection_state = connection_end*/
         /*else wait when session can push data to logind module*/
         /*when data is pushed on logi module than session destroy*/
         /*on remove_ended_session()*/
-        /**/
         if (!is_logging(server_context->data_log))
         {
             session->connection_state = connection_end;
@@ -678,11 +661,10 @@ static const dialog_t* get_dialog(list_t* dialogs, int dialog_id)
 
     for (; node; node = node->next)
     {
-        if ((dialog = (dialog_t*)node->data))/*maybe cut this*/
-        {
-            if (dialog->dialog_id == dialog_id)
-                return dialog;
-        }
+        dialog = (dialog_t*)node->data;
+        
+        if (dialog->dialog_id == dialog_id)
+            return dialog;
     }
 
     return NULL;
