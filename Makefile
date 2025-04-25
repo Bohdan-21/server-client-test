@@ -21,20 +21,13 @@ $(BIN_DIR)/$(SERVER_DIR):
 $(BIN_DIR)/$(CLIENT_DIR):
 	mkdir -p $(BIN_DIR)/$(CLIENT_DIR)
 
-$(BIN_DIR)/$(SERVER_DIR)/daemon_server: $(SRC_DIR)/$(SERVER_DIR)/daemon_server.c $(OBJMODULES)
+$(BIN_DIR)/$(SERVER_DIR)/server: $(SRC_DIR)/$(SERVER_DIR)/server.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
 $(BIN_DIR)/$(CLIENT_DIR)/client: $(SRC_DIR)/$(CLIENT_DIR)/client.c $(OBJMODULES)
 	$(CC) $(CFLAGS) $^ -o $@
 
-$(BIN_DIR)/test_custom_io: $(TEST_DIR)/test_custom_io.c $(OBJMODULES)
-	$(CC) $(CFLAGS) $^ -o $@
-
-$(BIN_DIR)/test_buffer: $(TEST_DIR)/buffer_test.c $(OBJMODULES)
-	$(CC) $(CFLAGS) $^ -o $@
-
-
-daemon_server: mk_server_dir $(BIN_DIR)/$(SERVER_DIR)/daemon_server
+server: mk_server_dir $(BIN_DIR)/$(SERVER_DIR)/server
 
 client: mk_client_dir $(BIN_DIR)/$(CLIENT_DIR)/client
 

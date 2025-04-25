@@ -1,47 +1,57 @@
-# Program  
-- **Server**  
-- **Client**  
+This is a minimal client-server application written in C as a personal learning exercise.
 
-## Modules  
-- **list**:  
-  - Stores session and dialog objects.  
+Components
+Server
 
-- **buffer**:  
-  - Manages text data, including searching and manipulating strings.
-  -   
+    Listens for incoming client connections on a local socket.
 
-- **dialog**:  
-  - Represents a simple object containing a sentence and its state.  
-  - Example: A "welcome state" might include `state: "welcome_state"` 
-    and `sentence: "Hello dear client"`.
-  - All dialog objects are stored in a list.  
+    Initializes a session for each client and tracks its dialog state.
 
-- **session**:  
-  - Stores client connection data, tracks the current dialog state, 
-    and keeps client responses to server questions.  
+    Uses non-blocking I/O and pselect for multiplexing.
 
-## Server  
-- Starts a local socket and listens for incoming connections.  
-- Accepts connections and initializes a new session for each client.  
-- All streams operate in **non-blocking mode**.  
-- Uses `pselect` to wait for client readiness (read/write operations).  
-- Handles signals, ensuring proper session cleanup before shutdown:  
-  - `SIGUSR1` - Reloads configuration (reloads dialogs from a file).  
-  - `SIGINT` - Stops the server.  
-- Removes inactive connections.  
-- Properly handles connection shutdowns.  
+    Handles shutdown:
 
-## Client  
-- Connects to the server.  
-- Waits for the server to send information.  
-- Responds to questions and sends answers to the server.  
-- Properly handles connection shutdowns.  
+        SIGUSR1 — Reloads dialog configuration from file.
 
-## Base  
-- Contains reusable functionality, such as reading/writing from file descriptors.  
+        SIGINT — Terminates the server, closing all sessions cleanly.
 
-### Limitations
-- The maximum length of a single input line is **128 characters** (including the newline character).
-- Input exceeding this limit may be truncated or cause undefined behavior.
-- Clients should ensure that their responses do not exceed this limit.
-- The program uses 'dirty' strings that end with '\n'. If a valid C string is needed, it can be converted.
+Client
+
+    Connects to the server.
+
+    Alternates between reading messages and sending user input.
+
+    Maintains two buffers:
+
+        Input buffer (receives server messages).
+
+        Output buffer (stores user replies).
+
+Modules
+list
+
+    Generic linked list.
+
+    Used for storing both session and dialog objects.
+
+buffer
+
+    Manages in-memory strings as character buffers.
+
+    Provides utilities for reading, writing, and searching data.
+
+dialog
+
+    Represents a single message.
+
+session
+
+    Represents an active connection.
+
+    Stores dialog state, received answers, and socket descriptor.
+
+Limitations
+
+    Maximum length of a single input line is 128 characters (including the null-terminator \0).
+
+    The client and server communicate using standard null-terminated C strings. However, incoming data (e.g., from user input or files) include newline characters, which are handled during parsing.
