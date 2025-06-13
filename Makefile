@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -g 
+CFLAGS = -m32 -Wall -g 
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
