@@ -15,7 +15,7 @@
         "setupCommands": [
           { "text": "-enable-pretty-printing", "description": "Enable pretty printing", "ignoreFailures": true }
         ],
-        "preLaunchTask": "build_debug_server"
+        "preLaunchTask": "build_debug_daemon_server"
       },
       {
         "name": "Debug client",

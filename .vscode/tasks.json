@@ -6,7 +6,7 @@
         "type": "shell",
         "command": "make",
         "args": [
-          "daemon_server"
+          "server"
         ],
         "group": { "kind": "build", "isDefault": true }
       },
