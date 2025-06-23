@@ -1,5 +1,5 @@
 #include "base.h"
-
+/*
 void* get_mem(size_t size)
 {
     void* new_allocated_mem;
@@ -14,7 +14,7 @@ void* get_mem(size_t size)
 
     return new_allocated_mem;
 }
-
+*/
 
 
 char* make_new_copy_string(const char* str, int length)

@@ -5,12 +5,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "memory_manager.h"
 
 #define C_STRING_SEPARATOR '\0'
 #define DIRTY_STRING_SEPARATOR '\n'
 
-
+/*
 void* get_mem(size_t size);
+*/
 
 char* make_new_copy_string(const char* str, int length);
 
